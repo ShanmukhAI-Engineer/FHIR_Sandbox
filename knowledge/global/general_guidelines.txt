@@ -1,0 +1,83 @@
+SYNTHFHIR GENERAL GUIDELINES
+=============================
+
+This document contains general guidelines for generating synthetic FHIR healthcare data.
+
+1. DATA QUALITY PRINCIPLES
+--------------------------
+- All generated data must be realistic and consistent
+- Identifiers must be unique within each resource type
+- References between resources must be valid
+- Dates must be in valid formats and logical (e.g., birthdate in the past)
+
+2. IDENTIFIER FORMATS
+---------------------
+- MRN (Medical Record Number): "MRN" prefix followed by 10 digits
+  Example: MRN1234567890
+  
+- SSN (Social Security Number): Format XXX-XX-XXXX
+  Example: 123-45-6789
+  Note: SSN should be masked/hashed in output
+
+- Patient ID: Alphanumeric, typically UUID or prefixed format
+  Example: patient-a1b2c3d4-e5f6-7890
+
+3. NAME CONVENTIONS
+-------------------
+- Use realistic US names
+- Include both given name(s) and family name
+- "use" should typically be "official" for primary name
+- Given names can be an array [first, middle]
+
+4. ADDRESS FORMATTING
+---------------------
+- US addresses should include:
+  - Line (street address)
+  - City
+  - State (2-letter code)
+  - Postal code (5 or 9 digit)
+  
+- State codes must be valid US state abbreviations
+- ZIP codes should be appropriate for the state
+
+5. DATE FORMATS
+---------------
+- All dates should be in ISO 8601 format: YYYY-MM-DD
+- Birth dates must be in the past
+- Dates should be realistic for the context
+
+6. GENDER VALUES
+----------------
+Valid values (per FHIR specification):
+- male
+- female
+- other
+- unknown
+
+7. PHONE NUMBER FORMAT
+----------------------
+- US format: XXX-XXX-XXXX
+- Include system (phone) and use (home/work/mobile)
+
+8. CODING SYSTEMS
+-----------------
+Common coding systems used in FHIR:
+- ICD-10: Diagnosis codes
+- CPT: Procedure codes
+- LOINC: Lab test codes
+- SNOMED CT: Clinical terms
+- RxNorm: Medication codes
+
+9. RESOURCE RELATIONSHIPS
+-------------------------
+- Patient is the central resource
+- Coverage references Patient (beneficiary)
+- Claim references Patient and Coverage
+- Observation references Patient (subject)
+
+10. DATA CONSISTENCY
+--------------------
+When generating related resources:
+- Patient IDs must match across resources
+- Coverage must exist before Claims reference it
+- Dates should be chronologically consistent

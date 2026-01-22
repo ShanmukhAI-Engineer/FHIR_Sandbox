@@ -1,0 +1,449 @@
+"""
+SynthFHIR - Streamlit UI
+Synthetic FHIR Data Generator with RAG
+"""
+
+import os
+import json
+import streamlit as st
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Set page config first
+st.set_page_config(
+    page_title="SynthFHIR - Synthetic Data Generator",
+    page_icon="🏥",
+    layout="wide"
+)
+
+# Import modules
+from config import (
+    get_enabled_resources,
+    get_resource_config,
+    get_resource_display_names,
+    QUICK_INPUT_OPTIONS,
+    LLM_SETTINGS,
+    OUTPUT_DIR,
+)
+from generator.llm import get_llm, get_active_llm_name
+from generator.table_generator import TableGenerator
+from rag import get_retriever, get_vector_store
+from utils import CSVExporter, MD5Hasher, validate_data
+
+
+def init_session_state():
+    """Initialize session state variables"""
+    if "generated_data" not in st.session_state:
+        st.session_state.generated_data = None
+    if "generation_status" not in st.session_state:
+        st.session_state.generation_status = None
+    if "indexed_resources" not in st.session_state:
+        st.session_state.indexed_resources = set()
+
+
+def render_sidebar():
+    """Render sidebar with settings and info"""
+    with st.sidebar:
+        st.title("⚙️ Settings")
+        
+        # LLM Info
+        st.subheader("LLM Configuration")
+        llm_name = get_active_llm_name()
+        st.info(f"Active LLM: **{llm_name.upper()}**")
+        
+        # Check API key
+        if llm_name == "openai":
+            api_key = os.getenv("OPENAI_API_KEY")
+            if api_key:
+                st.success("✅ OpenAI API Key configured")
+            else:
+                st.error("❌ OPENAI_API_KEY not set")
+                st.code("set OPENAI_API_KEY=your-key", language="bash")
+        
+        st.divider()
+        
+        # RAG Status
+        st.subheader("Knowledge Base")
+        try:
+            vector_store = get_vector_store()
+            doc_count = vector_store.count()
+            st.metric("Documents Indexed", doc_count)
+            
+            if st.button("🔄 Reindex Documents"):
+                with st.spinner("Indexing..."):
+                    index_all_resources()
+                    st.success("Indexing complete!")
+                    st.rerun()
+        except Exception as e:
+            st.error(f"Vector store error: {e}")
+        
+        st.divider()
+        
+        # About
+        st.subheader("About")
+        st.markdown("""
+        **SynthFHIR** generates synthetic healthcare data matching your Snowflake DDL structure.
+        
+        - 🏥 FHIR R4 compatible
+        - 🔒 MD5 hashing for PHI
+        - 📊 CSV export
+        - 🤖 RAG-enhanced generation
+        """)
+
+
+def render_main_ui():
+    """Render main UI"""
+    st.title("🏥 SynthFHIR")
+    st.subheader("Synthetic FHIR Data Generator")
+    
+    # Create tabs
+    tab1, tab2, tab3 = st.tabs(["📝 Generate", "📚 Knowledge Base", "📊 Results"])
+    
+    with tab1:
+        render_generation_tab()
+    
+    with tab2:
+        render_knowledge_tab()
+    
+    with tab3:
+        render_results_tab()
+
+
+def render_generation_tab():
+    """Render the generation tab"""
+    
+    # Prompt input
+    st.markdown("### 💬 Prompt")
+    user_prompt = st.text_area(
+        "Describe what data you want to generate:",
+        placeholder="Generate 5 diabetic patients in Texas with linked coverage and claims...",
+        height=100,
+        key="user_prompt"
+    )
+    
+    # Two columns layout
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### 📋 Resources")
+        enabled_resources = get_enabled_resources()
+        display_names = get_resource_display_names()
+        
+        selected_resources = st.multiselect(
+            "Select resources to generate:",
+            options=enabled_resources,
+            format_func=lambda x: display_names.get(x, x),
+            default=["patient"] if "patient" in enabled_resources else []
+        )
+        
+        st.markdown("### 🔢 Record Count")
+        record_count = st.number_input(
+            "Number of records:",
+            min_value=1,
+            max_value=100,
+            value=5,
+            key="record_count"
+        )
+    
+    with col2:
+        st.markdown("### ⚡ Quick Inputs (Optional)")
+        
+        quick_inputs = {}
+        
+        # Age range
+        age_col1, age_col2 = st.columns(2)
+        with age_col1:
+            age_min = st.number_input("Min Age", min_value=0, max_value=120, value=18)
+        with age_col2:
+            age_max = st.number_input("Max Age", min_value=0, max_value=120, value=65)
+        
+        if age_min > 0 or age_max < 120:
+            quick_inputs["age_min"] = age_min
+            quick_inputs["age_max"] = age_max
+        
+        # Gender
+        gender = st.selectbox(
+            "Gender",
+            options=["Any"] + QUICK_INPUT_OPTIONS["gender"],
+            index=0
+        )
+        if gender != "Any":
+            quick_inputs["gender"] = gender
+        
+        # State
+        state = st.selectbox(
+            "State",
+            options=["Any"] + QUICK_INPUT_OPTIONS["states"],
+            index=0
+        )
+        if state != "Any":
+            quick_inputs["state"] = state
+        
+        # Insurance Type
+        insurance = st.selectbox(
+            "Insurance Type",
+            options=["Any"] + QUICK_INPUT_OPTIONS["insurance_types"],
+            index=0
+        )
+        if insurance != "Any":
+            quick_inputs["insurance_type"] = insurance
+    
+    # LLM Settings (collapsible)
+    with st.expander("🎛️ LLM Settings"):
+        temperature = st.slider(
+            "Temperature",
+            min_value=0.0,
+            max_value=1.0,
+            value=LLM_SETTINGS["default_temperature"],
+            step=0.1,
+            help="Higher = more creative, Lower = more precise"
+        )
+        
+        max_tokens = st.slider(
+            "Max Tokens",
+            min_value=500,
+            max_value=8000,
+            value=LLM_SETTINGS["default_max_tokens"],
+            step=500
+        )
+    
+    # Output Options
+    with st.expander("📤 Output Options"):
+        apply_md5 = st.checkbox("Apply MD5 hashing to PHI fields", value=True)
+        validate_output = st.checkbox("Validate generated data", value=True)
+    
+    st.divider()
+    
+    # Generate button
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        generate_clicked = st.button(
+            "🚀 Generate Data",
+            type="primary",
+            use_container_width=True,
+            disabled=not selected_resources
+        )
+    
+    if generate_clicked:
+        if not user_prompt.strip():
+            st.warning("Please enter a prompt describing what data to generate.")
+            return
+        
+        with st.spinner("Generating synthetic data..."):
+            try:
+                # Generate data
+                generator = TableGenerator()
+                results = generator.generate(
+                    user_prompt=user_prompt,
+                    resources=selected_resources,
+                    record_count=record_count,
+                    quick_inputs=quick_inputs if quick_inputs else None,
+                    temperature=temperature,
+                    max_tokens=max_tokens
+                )
+                
+                # Process results
+                all_data = {}
+                for resource, result in results.items():
+                    if result.success:
+                        data = result.data
+                        
+                        # Apply MD5 if requested
+                        if apply_md5:
+                            config = get_resource_config(resource)
+                            md5_fields = config.get("md5_fields", [])
+                            if md5_fields:
+                                hasher = MD5Hasher()
+                                data = hasher.hash_fields(data, md5_fields)
+                        
+                        # Validate if requested
+                        if validate_output:
+                            validation = validate_data(data)
+                            if not validation.valid:
+                                st.warning(f"{resource}: {len(validation.errors)} validation errors")
+                        
+                        all_data[resource] = data
+                        st.success(f"✅ {resource}: Generated {len(data)} records")
+                    else:
+                        st.error(f"❌ {resource}: {result.error}")
+                
+                # Store in session state
+                st.session_state.generated_data = all_data
+                st.session_state.generation_status = "success"
+                
+            except Exception as e:
+                st.error(f"Generation failed: {str(e)}")
+                st.session_state.generation_status = "error"
+
+
+def render_knowledge_tab():
+    """Render knowledge base management tab"""
+    st.markdown("### 📚 Knowledge Base Management")
+    
+    st.markdown("""
+    Index your DDL files and guidelines to enable RAG-enhanced generation.
+    
+    **Folder Structure:**
+    - `ddl/` - DDL files (e.g., patient.sql)
+    - `knowledge/` - Guidelines and documentation
+    """)
+    
+    # Show current status
+    enabled_resources = get_enabled_resources()
+    
+    for resource in enabled_resources:
+        config = get_resource_config(resource)
+        ddl_file = config.get("ddl_file", "")
+        knowledge_dir = config.get("knowledge_dir", "")
+        
+        col1, col2, col3 = st.columns([2, 2, 1])
+        
+        with col1:
+            ddl_exists = os.path.exists(ddl_file)
+            status = "✅" if ddl_exists else "❌"
+            st.markdown(f"**{config['display_name']}** DDL: {status}")
+        
+        with col2:
+            knowledge_exists = os.path.exists(knowledge_dir) and any(Path(knowledge_dir).iterdir()) if os.path.exists(knowledge_dir) else False
+            status = "✅" if knowledge_exists else "⚪"
+            st.markdown(f"Guidelines: {status}")
+        
+        with col3:
+            if st.button(f"Index", key=f"index_{resource}"):
+                with st.spinner(f"Indexing {resource}..."):
+                    count = index_resource(resource)
+                    st.success(f"Indexed {count} chunks")
+    
+    st.divider()
+    
+    # Upload documents
+    st.markdown("### 📤 Upload Documents")
+    uploaded_file = st.file_uploader(
+        "Upload guidelines (TXT, PDF, CSV)",
+        type=["txt", "pdf", "csv"],
+        key="doc_upload"
+    )
+    
+    if uploaded_file:
+        target_resource = st.selectbox(
+            "Target Resource",
+            options=["global"] + enabled_resources,
+            key="upload_target"
+        )
+        
+        if st.button("Upload & Index"):
+            # Save file
+            target_dir = Path("knowledge") / target_resource
+            target_dir.mkdir(parents=True, exist_ok=True)
+            
+            file_path = target_dir / uploaded_file.name
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            
+            st.success(f"Saved to {file_path}")
+            
+            # Index
+            with st.spinner("Indexing..."):
+                retriever = get_retriever()
+                count = retriever.index_directory(str(target_dir), target_resource)
+                st.success(f"Indexed {count} chunks")
+
+
+def render_results_tab():
+    """Render results and export tab"""
+    st.markdown("### 📊 Generated Results")
+    
+    if st.session_state.generated_data:
+        data = st.session_state.generated_data
+        
+        for resource, records in data.items():
+            st.markdown(f"#### {resource.title()} ({len(records)} records)")
+            
+            # Show preview
+            if records:
+                # Convert to displayable format
+                display_data = []
+                for record in records[:10]:  # Show first 10
+                    display_record = {}
+                    for k, v in record.items():
+                        if isinstance(v, (dict, list)):
+                            display_record[k] = json.dumps(v)[:100] + "..." if len(json.dumps(v)) > 100 else json.dumps(v)
+                        else:
+                            display_record[k] = v
+                    display_data.append(display_record)
+                
+                st.dataframe(display_data, use_container_width=True)
+                
+                # Export button
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button(f"📥 Export {resource} to CSV", key=f"export_{resource}"):
+                        exporter = CSVExporter()
+                        filepath = exporter.export(records, resource)
+                        st.success(f"Exported to: {filepath}")
+                        
+                        # Download button
+                        with open(filepath, "r") as f:
+                            csv_content = f.read()
+                        st.download_button(
+                            "Download CSV",
+                            csv_content,
+                            file_name=f"{resource}_synthetic.csv",
+                            mime="text/csv",
+                            key=f"download_{resource}"
+                        )
+                
+                with col2:
+                    if st.button(f"📋 Copy JSON", key=f"json_{resource}"):
+                        st.code(json.dumps(records[:5], indent=2), language="json")
+            
+            st.divider()
+    else:
+        st.info("No data generated yet. Go to the Generate tab to create synthetic data.")
+
+
+def index_resource(resource: str) -> int:
+    """Index a single resource's DDL and guidelines"""
+    config = get_resource_config(resource)
+    retriever = get_retriever()
+    total = 0
+    
+    # Index DDL
+    ddl_file = config.get("ddl_file", "")
+    if os.path.exists(ddl_file):
+        count = retriever.index_ddl(ddl_file, resource)
+        total += count
+    
+    # Index guidelines
+    knowledge_dir = config.get("knowledge_dir", "")
+    if os.path.exists(knowledge_dir):
+        count = retriever.index_directory(knowledge_dir, resource)
+        total += count
+    
+    return total
+
+
+def index_all_resources():
+    """Index all enabled resources"""
+    for resource in get_enabled_resources():
+        index_resource(resource)
+    
+    # Index global knowledge
+    global_dir = "knowledge/global"
+    if os.path.exists(global_dir):
+        retriever = get_retriever()
+        retriever.index_directory(global_dir, "global")
+
+
+def main():
+    """Main entry point"""
+    init_session_state()
+    render_sidebar()
+    render_main_ui()
+
+
+if __name__ == "__main__":
+    main()
