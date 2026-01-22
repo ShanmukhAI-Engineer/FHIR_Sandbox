@@ -8,6 +8,9 @@ from dataclasses import dataclass
 from .document_loader import DocumentLoader, Document
 from .text_chunker import TextChunker, Chunk
 from .vector_store import VectorStore, SearchResult, get_vector_store
+from utils.logger import get_logger
+
+logger = get_logger("rag")
 
 
 @dataclass
@@ -36,6 +39,7 @@ class Retriever:
         self.loader = DocumentLoader()
         self.top_k = top_k
         self.max_context_tokens = max_context_tokens
+        logger.debug("Retriever initialized")
     
     def index_document(self, document: Document) -> int:
         """Index a single document into the vector store"""
@@ -43,6 +47,7 @@ class Retriever:
         chunks = self.chunker.chunk_text(document.content, document.metadata)
         
         if not chunks:
+            logger.warning(f"No chunks created for document: {document.metadata}")
             return 0
         
         # Prepare for vector store
@@ -50,10 +55,13 @@ class Retriever:
         metadatas = [chunk.metadata for chunk in chunks]
         
         # Add to vector store
-        return self.vector_store.add_documents(texts, metadatas)
+        count = self.vector_store.add_documents(texts, metadatas)
+        logger.debug(f"Indexed {count} chunks for document")
+        return count
     
     def index_directory(self, directory: str, resource: str) -> int:
         """Index all documents in a directory"""
+        logger.info(f"Indexing directory: {directory} for {resource}")
         documents = self.loader.load_directory(
             directory, 
             metadata={"resource": resource, "type": "guideline"}
@@ -63,10 +71,12 @@ class Retriever:
         for doc in documents:
             total_indexed += self.index_document(doc)
         
+        logger.info(f"Finished indexing {resource}. Total chunks: {total_indexed}")
         return total_indexed
     
     def index_ddl(self, file_path: str, resource: str) -> int:
         """Index a DDL file"""
+        logger.info(f"Indexing DDL: {file_path}")
         doc = self.loader.load_file(
             file_path,
             metadata={"resource": resource, "type": "ddl"}
@@ -74,10 +84,12 @@ class Retriever:
         
         if doc:
             # For DDL, keep as single chunk (usually small enough)
-            return self.vector_store.add_documents(
+            count = self.vector_store.add_documents(
                 texts=[doc.content],
                 metadatas=[doc.metadata]
             )
+            logger.info(f"Indexed DDL for {resource}")
+            return count
         return 0
     
     def retrieve(
@@ -102,6 +114,7 @@ class Retriever:
         )
         
         if not results:
+            logger.warning(f"No relevant documents found for query: '{query}'")
             return RetrievalResult(
                 context="",
                 chunks=[],
@@ -139,6 +152,8 @@ class Retriever:
                 included_chunks.append(result)
         
         context = "\n".join(context_parts)
+        
+        logger.info(f"Retrieval complete. Found {len(results)} total, used {len(included_chunks)} chunks.")
         
         return RetrievalResult(
             context=context,

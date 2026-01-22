@@ -32,6 +32,11 @@ from generator.llm import get_llm, get_active_llm_name
 from generator.table_generator import TableGenerator
 from rag import get_retriever, get_vector_store
 from utils import CSVExporter, MD5Hasher, validate_data
+from utils.logger import setup_logger
+
+# Initialize logger
+logger = setup_logger()
+logger.info("Starting SynthFHIR UI")
 
 
 def init_session_state():
@@ -234,6 +239,8 @@ def render_generation_tab():
         
         with st.spinner("Generating synthetic data..."):
             try:
+                logger.info(f"Generation request: {user_prompt[:50]}... Resources: {selected_resources}")
+                
                 # Generate data
                 generator = TableGenerator()
                 results = generator.generate(
@@ -263,11 +270,14 @@ def render_generation_tab():
                         if validate_output:
                             validation = validate_data(data)
                             if not validation.valid:
+                                logger.warning(f"Validation errors for {resource}: {len(validation.errors)}")
                                 st.warning(f"{resource}: {len(validation.errors)} validation errors")
                         
                         all_data[resource] = data
+                        logger.info(f"Successfully generated {len(data)} records for {resource}")
                         st.success(f"✅ {resource}: Generated {len(data)} records")
                     else:
+                        logger.error(f"Failed to generate {resource}: {result.error}")
                         st.error(f"❌ {resource}: {result.error}")
                 
                 # Store in session state
@@ -275,6 +285,7 @@ def render_generation_tab():
                 st.session_state.generation_status = "success"
                 
             except Exception as e:
+                logger.exception("Fatal error during generation")
                 st.error(f"Generation failed: {str(e)}")
                 st.session_state.generation_status = "error"
 

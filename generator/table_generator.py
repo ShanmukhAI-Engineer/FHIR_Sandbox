@@ -10,6 +10,9 @@ from dataclasses import dataclass
 from .llm import get_llm, LLMResponse
 from .prompt_builder import PromptBuilder
 from rag import get_retriever, RetrievalResult
+from utils.logger import get_logger
+
+logger = get_logger("generator")
 
 
 @dataclass
@@ -31,6 +34,7 @@ class TableGenerator:
         self.llm = get_llm()
         self.retriever = get_retriever()
         self.prompt_builder = PromptBuilder()
+        logger.debug("TableGenerator initialized")
     
     def generate(
         self,
@@ -91,6 +95,9 @@ class TableGenerator:
         
         if retrieval.warning:
             warnings.append(retrieval.warning)
+            logger.warning(f"RAG warning for {resource}: {retrieval.warning}")
+        
+        logger.info(f"RAG retrieved {retrieval.total_found} chunks for {resource}")
         
         # Build prompt
         system_message, user_message = self.prompt_builder.build_prompt(
@@ -102,6 +109,8 @@ class TableGenerator:
             record_count=record_count
         )
         
+        logger.debug(f"Prompt built for {resource}. System msg length: {len(system_message)}")
+        
         # Call LLM
         llm_response = self.llm.generate(
             prompt=user_message,
@@ -110,7 +119,10 @@ class TableGenerator:
             max_tokens=max_tokens
         )
         
+        logger.info(f"LLM completed in {llm_response.latency_ms:.2f}ms. Tokens: {llm_response.completion_tokens}")
+        
         if not llm_response.success:
+            logger.error(f"LLM generation failed for {resource}: {llm_response.error}")
             return GenerationResult(
                 success=False,
                 data=[],
@@ -125,6 +137,7 @@ class TableGenerator:
         data, parse_error = self._parse_response(llm_response.content)
         
         if parse_error:
+            logger.error(f"Failed to parse response for {resource}: {parse_error}")
             return GenerationResult(
                 success=False,
                 data=[],
@@ -137,7 +150,9 @@ class TableGenerator:
         
         # Validate count
         if len(data) != record_count:
-            warnings.append(f"Requested {record_count} records, got {len(data)}")
+            warning = f"Requested {record_count} records, got {len(data)}"
+            warnings.append(warning)
+            logger.warning(f"{resource}: {warning}")
         
         return GenerationResult(
             success=True,
