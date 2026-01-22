@@ -11,6 +11,7 @@ from .llm import get_llm, LLMResponse
 from .prompt_builder import PromptBuilder
 from rag import get_retriever, RetrievalResult
 from utils.logger import get_logger
+from utils.ddl_parser import get_columns_from_ddl
 
 logger = get_logger("generator")
 
@@ -60,6 +61,7 @@ class TableGenerator:
             Dict mapping resource name to GenerationResult
         """
         results = {}
+        context_ids = {} # Keep track of generated IDs for relationships
         
         for resource in resources:
             result = self._generate_resource(
@@ -68,9 +70,22 @@ class TableGenerator:
                 record_count=record_count,
                 quick_inputs=quick_inputs,
                 temperature=temperature,
-                max_tokens=max_tokens
+                max_tokens=max_tokens,
+                relationship_context=context_ids
             )
             results[resource] = result
+            
+            # Store newly generated IDs for the next resource
+            if result.success and result.data:
+                resource_ids = []
+                for record in result.data:
+                    if "ID" in record:
+                        resource_ids.append(record["ID"])
+                    elif "id" in record:
+                        resource_ids.append(record["id"])
+                
+                if resource_ids:
+                    context_ids[resource] = resource_ids
         
         return results
     
@@ -81,7 +96,8 @@ class TableGenerator:
         record_count: int,
         quick_inputs: Dict = None,
         temperature: float = 0.7,
-        max_tokens: int = 4000
+        max_tokens: int = 4000,
+        relationship_context: Optional[Dict[str, List[str]]] = None
     ) -> GenerationResult:
         """Generate data for a single resource"""
         warnings = []
@@ -99,6 +115,20 @@ class TableGenerator:
         
         logger.info(f"RAG retrieved {retrieval.total_found} chunks for {resource}")
         
+        # Extract required columns from DDL if available
+        required_columns = []
+        ddl_text = self.retriever.get_ddl_for_resource(resource)
+        if ddl_text:
+             # If exact DDL file content is available, use it
+             required_columns = get_columns_from_ddl(ddl_text)
+        elif retrieval.context:
+             # Try to extract from context (less reliable but fallback)
+             # Better to rely on retrieving the DDL specifically
+             pass
+             
+        if required_columns:
+            logger.debug(f"Enforcing {len(required_columns)} columns for {resource}")
+ 
         # Build prompt
         system_message, user_message = self.prompt_builder.build_prompt(
             user_prompt=user_prompt,
@@ -106,7 +136,9 @@ class TableGenerator:
             ddl_context=retrieval.context,
             guidelines_context="",  # Already included in retrieval.context
             quick_inputs=quick_inputs,
-            record_count=record_count
+            record_count=record_count,
+            required_columns=required_columns,
+            relationship_context=relationship_context
         )
         
         logger.debug(f"Prompt built for {resource}. System msg length: {len(system_message)}")

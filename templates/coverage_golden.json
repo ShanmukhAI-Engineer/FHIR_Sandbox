@@ -1,0 +1,66 @@
+{
+  "ID": "278c38f3e40647f1972e4dc3be87a4d4",
+  "MCID": 171432881,
+  "STATUS": "active",
+  "SUBSCRIBERID": "XNFTADJ39",
+  "DEPENDENT": "0",
+  "SUBSCRIBER_SYS": "https://genhealthey.com/MemberID",
+  "POLICY_HOLDER": "Y",
+  "INSURER_NETWORK": "P",
+  "SUBROGATION": "N",
+  "CONTRACT": "N",
+  "COSTTOBENEFICIARY": "Y",
+  "BENEFICIARY": {
+    "reference": "Patient/b9359aca40af4f5886d17734816a92bc"
+  },
+  "SUBSCRIBER": {
+    "reference": "Patient/b9359aca40af4f5886d17734816a92bc"
+  },
+  "PERIOD": {
+    "start": "2023-01-01",
+    "end": "2023-12-31"
+  },
+  "META": {
+    "versionId": "1",
+    "lastUpdated": "2023-01-01T12:00:00Z"
+  },
+  "EXTENSIONS": [],
+  "CONTAINED": [],
+  "CLASS": [
+    {
+      "type": {
+        "coding": [
+          {
+            "system": "http://terminology.hl7.org/CodeSystem/coverage-class",
+            "code": "group"
+          }
+        ]
+      },
+      "value": "GP1234"
+    }
+  ],
+  "RELATIONSHIP": {
+    "coding": [
+      {
+        "system": "http://terminology.hl7.org/CodeSystem/subscriber-relationship",
+        "code": "self"
+      }
+    ]
+  },
+  "PAYOR": [
+    {
+      "reference": "Organization/2",
+      "display": "Blue Cross Blue Shield"
+    }
+  ],
+  "IDENTIFIER": [],
+  "TYPE": {
+    "coding": [
+      {
+        "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+        "code": "EXTMEVM"
+      }
+    ]
+  },
+  "HASH_KEY": "e12d26e4e59cfac6a2bef9ce05febcf889ea122c8cac5bb6ad8cbf74be3de03c"
+}

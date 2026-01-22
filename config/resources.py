@@ -35,11 +35,11 @@ RESOURCES = {
         
         # Fields to MD5 hash (PHI protection)
         "md5_fields": [
-            "IDENTIFIER[*].value",
-            "NAME[*].family",
-            "NAME[*].given[*]",
-            "TELECOM[*].value",
-            "ADDRESS[*].line[*]",
+            # "IDENTIFIER[*].value",
+            # "NAME[*].family",
+            # "NAME[*].given[*]",
+            # "TELECOM[*].value",
+            # "ADDRESS[*].line[*]",
         ],
         
         # Relationships to other resources
@@ -65,7 +65,7 @@ RESOURCES = {
             "HASH_KEY",
         ],
         "md5_fields": [
-            "SUBSCRIBER_ID",
+            # "SUBSCRIBER_ID",
         ],
         "relationships": [
             {"column": "BENEFICIARY", "references": "patient.ID"},

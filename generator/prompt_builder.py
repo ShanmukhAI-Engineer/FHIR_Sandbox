@@ -3,6 +3,9 @@ Prompt Builder - Construct prompts for LLM generation
 """
 
 from typing import List, Dict, Optional
+import os
+import json
+from pathlib import Path
 
 
 class PromptBuilder:
@@ -17,7 +20,8 @@ CRITICAL RULES:
 4. Follow the sample format EXACTLY if provided
 5. Apply all guidelines provided
 6. Generate realistic, consistent data
-7. Do NOT include any explanation, only the JSON array"""
+7. All IDs MUST be alphanumeric strings exactly 32 characters long (e.g., '3f987ee038494bddb2433e7f0113948e')
+8. Do NOT include any explanation, only the JSON array"""
 
     def __init__(self):
         pass
@@ -30,7 +34,9 @@ CRITICAL RULES:
         guidelines_context: str,
         sample_template: Optional[str] = None,
         quick_inputs: Optional[Dict] = None,
-        record_count: int = 10
+        record_count: int = 10,
+        required_columns: Optional[List[str]] = None,
+        relationship_context: Optional[Dict[str, List[str]]] = None
     ) -> tuple[str, str]:
         """
         Build the complete prompt for LLM.
@@ -40,6 +46,17 @@ CRITICAL RULES:
         """
         # Build user message parts
         parts = []
+        
+        # Try to load golden template if not provided
+        if not sample_template and len(resources) == 1:
+            resource = resources[0].lower()
+            template_path = Path(f"templates/{resource}_golden.json")
+            if template_path.exists():
+                try:
+                    with open(template_path, "r", encoding="utf-8") as f:
+                        sample_template = f.read()
+                except Exception as e:
+                    print(f"Failed to load template: {e}")
         
         # 1. Table Structure (DDL)
         if ddl_context:
@@ -67,6 +84,16 @@ CRITICAL RULES:
             parts.append(constraints)
             parts.append("")
         
+        # 4. RELATIONSHIPS (Stateful ID mapping)
+        if relationship_context:
+            parts.append("## RELATIONSHIPS")
+            parts.append("To maintain referential integrity, use the following IDs for reference fields:")
+            for res_type, ids in relationship_context.items():
+                if ids:
+                    parts.append(f"- {res_type.upper()} IDs: {', '.join(ids[:20])}") # Limit to avoid token bloat
+            parts.append("Randomly select from these IDs when a resource needs to reference another.")
+            parts.append("")
+
         # 5. User Request
         parts.append("## USER REQUEST")
         parts.append(user_prompt)
@@ -76,6 +103,15 @@ CRITICAL RULES:
         parts.append("## OUTPUT INSTRUCTIONS")
         parts.append(f"Generate exactly {record_count} records as a JSON array.")
         parts.append("Resources to generate: " + ", ".join(resources))
+        
+        if required_columns:
+            parts.append("IMPORTANT: Each object MUST include the following keys exactly:")
+            parts.append("[" + ", ".join(required_columns) + "]")
+            parts.append("Do not omit any columns.")
+            parts.append("For optional VARIANT/ARRAY fields (e.g., EXTENSIONS, LINK, PHOTO):")
+            parts.append("- Use realistic values if they make sense for the patient.")
+            parts.append("- Use null or [] ONLY if the field is truly not applicable.")
+        
         parts.append("Return ONLY the JSON array, no explanations or markdown.")
         
         user_message = "\n".join(parts)

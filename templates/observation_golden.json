@@ -1,0 +1,67 @@
+{
+  "ID": "4311264d658d4d71864ada8e87524591",
+  "MCID": "453778756",
+  "META": {
+    "versionId": "1"
+  },
+  "IDENTIFIER": {},
+  "BASED_ON": [],
+  "PART_OF": {},
+  "STATUS": "final",
+  "CATEGORY": [
+    {
+      "coding": [
+        {
+          "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+          "code": "vital-signs"
+        }
+      ]
+    }
+  ],
+  "CODE": {
+    "coding": [
+      {
+        "system": "http://loinc.org",
+        "code": "85354-9"
+      }
+    ]
+  },
+  "SUBJECT_REF": {
+    "reference": "Patient/151ade973ecc4fd4870b763256553af4"
+  },
+  "FOCUS": {},
+  "ENCOUNTER": {
+    "reference": "Encounter/1"
+  },
+  "EFFECTIVE": {
+    "start": "2023-06-01T10:30:00Z",
+    "end": "2023-06-01T10:30:00Z"
+  },
+  "ISSUED": "2023-06-01T10:35:00Z",
+  "PERFORMER": [
+    {
+      "reference": "Practitioner/1"
+    }
+  ],
+  "OBS_VAL": {
+    "valueQuantity": {
+      "value": 120,
+      "unit": "mmHg"
+    }
+  },
+  "OBS_VAL_QTY_CD": "mm[Hg]",
+  "INTERPRETATION": [],
+  "NOTE": [],
+  "BODY_SITE": {},
+  "METHOD": {},
+  "SPECIMEN": {},
+  "DEVICE": {},
+  "REF_RANGE": [],
+  "HAS_MBR": {},
+  "DERIVED_FROM": {},
+  "COMPONENT": [],
+  "EXTENSIONS": [],
+  "DATA_ABSNT_RSN": {},
+  "STATUS_EXTENSION": {},
+  "HASH_KEY": "dd42f6e12edf7246d1b30d4deda6b3efca6a9d248b8f6a6f472d4bc3fe9b6c4d"
+}

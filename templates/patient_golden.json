@@ -1,0 +1,89 @@
+{
+  "SRC_TYPE": "FHIR",
+  "ID": "3f987ee038494bddb2433e7f0113948e",
+  "MCID": 262950628,
+  "META": {
+    "versionId": "1",
+    "lastUpdated": "2023-01-01T12:00:00Z"
+  },
+  "ACTIVE": "true",
+  "GENDER": "male",
+  "BIRTHDATE": "1972-06-28",
+  "DECEASED": null,
+  "NAME": [
+    {
+      "use": "official",
+      "family": "Johnson",
+      "given": [
+        "Mark"
+      ]
+    }
+  ],
+  "TELECOM": [
+    {
+      "system": "phone",
+      "value": "321.581.9600",
+      "use": "home"
+    }
+  ],
+  "ADDRESS": [
+    {
+      "use": "home",
+      "line": [
+        "908 Jennifer Squares"
+      ],
+      "city": "Robinsonshire",
+      "state": "KY",
+      "postalCode": "01352",
+      "country": "USA"
+    }
+  ],
+  "MARITAL_STATUS": {
+    "coding": [
+      {
+        "system": "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus",
+        "code": "M",
+        "display": "Married"
+      }
+    ]
+  },
+  "COMMUNICATION": [
+    {
+      "language": {
+        "coding": [
+          {
+            "code": "en",
+            "display": "English"
+          }
+        ]
+      }
+    }
+  ],
+  "MULTIPLE_BIRTH_INDEX": null,
+  "PCP": {
+    "reference": "Practitioner/93e0a3779d304060b9b0c2d0571f5013",
+    "display": "Dr. Blake"
+  },
+  "MANAGING_ORG": {
+    "reference": "Organization/1"
+  },
+  "LINK": [],
+  "EXTENSIONS": [],
+  "IDENTIFIER": [
+    {
+      "system": "https://genhealthey.com/MemberID",
+      "type": {
+        "coding": [
+          {
+            "code": "MB",
+            "system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+          }
+        ]
+      },
+      "use": "official",
+      "value": "XQ2K5JAB8"
+    }
+  ],
+  "PHOTO": [],
+  "CONTACT": []
+}
