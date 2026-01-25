@@ -67,6 +67,16 @@ def render_sidebar():
             else:
                 st.error("❌ OPENAI_API_KEY not set")
                 st.code("set OPENAI_API_KEY=your-key", language="bash")
+        elif llm_name == "enterprise":
+            endpoint = os.getenv("ENTERPRISE_ENDPOINT")
+            api_key = os.getenv("ENTERPRISE_API_KEY")
+            if endpoint and api_key:
+                st.success("✅ Enterprise LLM configured")
+                st.caption(f"Endpoint: {endpoint[:30]}...")
+            else:
+                st.error("❌ Enterprise configuration incomplete")
+                if not endpoint: st.warning("ENTERPRISE_ENDPOINT missing")
+                if not api_key: st.warning("ENTERPRISE_API_KEY missing")
         
         st.divider()
         

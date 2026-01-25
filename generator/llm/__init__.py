@@ -8,13 +8,11 @@ To swap LLMs:
 To add a new LLM:
 1. Create new file (e.g., new_llm.py) implementing BaseLLM
 2. Add to PROVIDERS dict
-3. Add to LLM_REGISTRY dict
+3. Update get_llm() factory
 """
 
 import os
 from .base_llm import BaseLLM, LLMResponse, LLMConfig
-from .openai_llm import OpenAILLM
-from .horizon_llm import HorizonLLM
 
 
 # ============ CONFIGURATION ============
@@ -39,44 +37,49 @@ PROVIDERS = {
         "model": os.getenv("HORIZON_MODEL", "horizon-v1"),
         "timeout_seconds": 60,
     },
-    # Add more providers here
-    # "new_llm": {
-    #     "endpoint": os.getenv("NEW_LLM_ENDPOINT", ""),
-    #     "api_key_env": "NEW_LLM_API_KEY",
-    #     "model": os.getenv("NEW_LLM_MODEL", ""),
-    #     "timeout_seconds": 60,
-    # },
+    "enterprise": {
+        "endpoint": os.getenv("ENTERPRISE_ENDPOINT", ""),
+        "api_key_env": "ENTERPRISE_API_KEY",
+        "model": os.getenv("ENTERPRISE_MODEL", "enterprise-v1"),
+        "timeout_seconds": 60,
+    },
 }
 
 # ========================================
 
-# Registry of available LLMs
-LLM_REGISTRY = {
-    "openai": OpenAILLM,
-    "horizon": HorizonLLM,
-    # Add new LLMs here
-}
-
-
 def get_llm() -> BaseLLM:
     """
-    Factory function to get the active LLM instance.
-    
-    Priority:
-    1. ACTIVE_LLM environment variable
-    2. DEFAULT_LLM in this file
+    Factory function to get the active LLM instance using LAZY LOADING.
+    This prevents ModuleNotFound errors if a provider's dependencies are missing.
     """
-    if ACTIVE_LLM not in LLM_REGISTRY:
-        available = list(LLM_REGISTRY.keys())
-        raise ValueError(f"Unknown LLM: {ACTIVE_LLM}. Available: {available}")
     
     if ACTIVE_LLM not in PROVIDERS:
-        raise ValueError(f"No configuration found for LLM: {ACTIVE_LLM}")
+        available = list(PROVIDERS.keys())
+        raise ValueError(f"Unknown LLM Provider: {ACTIVE_LLM}. Available: {available}")
     
-    llm_class = LLM_REGISTRY[ACTIVE_LLM]
     llm_config = PROVIDERS[ACTIVE_LLM]
     
-    return llm_class(llm_config)
+    try:
+        if ACTIVE_LLM == "openai":
+            from .openai_llm import OpenAILLM
+            return OpenAILLM(llm_config)
+            
+        elif ACTIVE_LLM == "horizon":
+            from .horizon_llm import HorizonLLM
+            return HorizonLLM(llm_config)
+            
+        elif ACTIVE_LLM == "enterprise":
+            from .enterprise_llm import EnterpriseLLM
+            return EnterpriseLLM(llm_config)
+            
+        else:
+            raise ValueError(f"LLM provider {ACTIVE_LLM} is registered but not implemented in factory.")
+            
+    except ImportError as e:
+        raise ImportError(
+            f"Could not load LLM provider '{ACTIVE_LLM}'. "
+            f"Ensure its dependencies are installed. Error: {e}"
+        )
 
 
 def get_active_llm_name() -> str:
@@ -86,7 +89,7 @@ def get_active_llm_name() -> str:
 
 def get_available_llms() -> list:
     """Get list of available LLMs"""
-    return list(LLM_REGISTRY.keys())
+    return list(PROVIDERS.keys())
 
 
 __all__ = [
