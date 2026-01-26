@@ -38,10 +38,11 @@ PROVIDERS = {
         "timeout_seconds": 60,
     },
     "enterprise": {
-        "endpoint": os.getenv("ENTERPRISE_ENDPOINT", ""),
-        "api_key_env": "ENTERPRISE_API_KEY",
-        "model": os.getenv("ENTERPRISE_MODEL", "enterprise-v1"),
-        "timeout_seconds": 60,
+        "base_url": os.getenv("ENTERPRISE_BASE_URL", ""),
+        "token_path": os.getenv("ENTERPRISE_TOKEN_PATH", "/v2/oauth2/token"),
+        "chat_path": os.getenv("ENTERPRISE_CHAT_PATH", "/v2/text/chats"),
+        "model": os.getenv("ENTERPRISE_MODEL", ""),
+        "timeout_seconds": 120,
     },
 }
 
