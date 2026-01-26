@@ -198,6 +198,13 @@ class TableGenerator:
     def _parse_response(self, response: str) -> tuple[List[Dict], Optional[str]]:
         """Parse LLM response into JSON data"""
         try:
+            # DEBUG: Log what we received from LLM
+            logger.info(f"[PARSE DEBUG] Response length: {len(response) if response else 0}")
+            if not response:
+                logger.error("[PARSE DEBUG] Response is EMPTY!")
+                return [], "LLM returned empty response"
+            logger.info(f"[PARSE DEBUG] First 200 chars: {response[:200] if len(response) > 200 else response}")
+            
             # Clean response - remove markdown code blocks if present
             cleaned = response.strip()
             
@@ -227,6 +234,7 @@ class TableGenerator:
             return data, None
             
         except json.JSONDecodeError as e:
+            logger.error(f"[PARSE DEBUG] JSON decode failed. Cleaned content: {cleaned[:300] if cleaned else 'EMPTY'}")
             return [], f"Invalid JSON: {str(e)}"
         except Exception as e:
             return [], f"Unexpected error: {str(e)}"

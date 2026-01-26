@@ -131,9 +131,42 @@ class EnterpriseLLM(BaseLLM):
             data = response.json()
             latency_ms = (time.time() - start_time) * 1000
             
-            # Parse OpenAI-compatible response
-            content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            # DEBUG: Log response for troubleshooting
+            print(f"[DEBUG] Enterprise LLM Response Status: {response.status_code}")
+            print(f"[DEBUG] Response Keys: {list(data.keys())}")
+            
+            # Parse response - try multiple formats
+            content = ""
+            
+            # Format 1: OpenAI-compatible (choices[0].message.content)
+            if "choices" in data:
+                content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            
+            # Format 2: Direct message at root (your enterprise format)
+            elif "message" in data:
+                msg = data.get("message")
+                if isinstance(msg, str):
+                    content = msg
+                elif isinstance(msg, dict):
+                    content = msg.get("content", "")
+            
+            # Format 3: Direct content at root
+            elif "content" in data:
+                content = data.get("content", "")
+            
+            # Format 4: Response or result key
+            elif "response" in data:
+                content = data.get("response", "")
+            elif "result" in data:
+                content = data.get("result", "")
+            
             usage = data.get("usage", {})
+            
+            print(f"[DEBUG] Content Length: {len(content)} chars")
+            if len(content) < 500:
+                print(f"[DEBUG] Full Content: {content}")
+            else:
+                print(f"[DEBUG] Content Preview: {content[:300]}...")
             
             return LLMResponse(
                 content=content,
