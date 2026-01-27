@@ -1,6 +1,6 @@
 # SynthFHIR - Synthetic FHIR Data Generator
 
-🏥 Generate synthetic healthcare data matching your Snowflake DDL structure using LLM and RAG.
+🏥 Generate synthetic healthcare data matching your Snowflake DDL structure using Enterprise LLM and RAG.
 
 ## Features
 
@@ -8,7 +8,7 @@
 - **DDL-Driven**: Output matches your Snowflake table structure exactly
 - **RAG-Enhanced**: Uses your guidelines and documentation for accurate generation
 - **PHI Protection**: MD5 hashing for sensitive fields
-- **Pluggable LLM**: Easy swap between OpenAI, Horizon, or custom LLMs
+- **Enterprise LLM**: OAuth2-authenticated enterprise LLM integration
 - **Streamlit UI**: User-friendly web interface
 
 ## Quick Start
@@ -27,12 +27,14 @@ pip install -r requirements.txt
 
 ```bash
 copy .env.example .env
-# Edit .env with your API keys
+# Edit .env with your enterprise credentials
 ```
 
 **Required:**
-```
-OPENAI_API_KEY=your-openai-api-key
+```bash
+ENTERPRISE_BASE_URL=https://your-enterprise-llm.company.com
+ENTERPRISE_CLIENT_ID=your-oauth2-client-id
+ENTERPRISE_CLIENT_SECRET=your-oauth2-client-secret
 ```
 
 ### 3. Run the Application
@@ -54,8 +56,6 @@ sandboxfhir/
 ├── generator/
 │   ├── llm/                  # LLM implementations
 │   │   ├── base_llm.py       # Base interface
-│   │   ├── openai_llm.py     # OpenAI implementation
-│   │   ├── horizon_llm.py    # Legacy enterprise template
 │   │   └── enterprise_llm.py # Enterprise LLM with OAuth2
 │   ├── prompt_builder.py     # Prompt construction
 │   └── table_generator.py    # Data generation
@@ -68,8 +68,7 @@ sandboxfhir/
 │   ├── md5_hasher.py         # PHI hashing
 │   ├── data_validator.py     # Validation
 │   ├── csv_exporter.py       # CSV export
-│   ├── ddl_parser.py         # DDL parsing
-│   └── mock_enterprise_gateway.py  # Mock OAuth2 gateway for testing
+│   └── ddl_parser.py         # DDL parsing
 ├── ddl/                      # Your DDL files
 ├── knowledge/                # Guidelines and docs
 ├── templates/                # Sample data templates
@@ -102,44 +101,13 @@ Add SME documentation to `knowledge/` folders:
 4. Click Generate
 5. Export to CSV
 
-## Swapping LLMs
-
-SynthFHIR supports multiple LLM backends:
-
-| Provider | Use Case | Auth Type |
-|----------|----------|-----------|
-| `openai` | OpenAI API or compatible endpoints | API Key |
-| `horizon` | Legacy enterprise template | API Key |
-| `enterprise` | **Enterprise LLM with OAuth2** | OAuth2 Client Credentials |
-
-### Option A: Environment Variable
-
-```bash
-# For OpenAI
-set ACTIVE_LLM=openai
-
-# For Enterprise LLM (OAuth2)
-set ACTIVE_LLM=enterprise
-```
-
-### Option B: Change Default
-
-Edit `generator/llm/__init__.py`:
-```python
-DEFAULT_LLM = "enterprise"  # Change from "openai"
-```
-
 ---
 
-## Enterprise LLM Setup (OAuth2)
+## Enterprise LLM Configuration
 
-For organizations using internal LLM APIs with OAuth2 authentication:
-
-### 1. Configure Environment Variables
+### Required Environment Variables
 
 ```bash
-# Required
-ACTIVE_LLM=enterprise
 ENTERPRISE_BASE_URL=https://your-enterprise-llm.company.com
 ENTERPRISE_CLIENT_ID=your-oauth2-client-id
 ENTERPRISE_CLIENT_SECRET=your-oauth2-client-secret
@@ -150,7 +118,7 @@ ENTERPRISE_TOKEN_PATH=/v2/oauth2/token
 ENTERPRISE_CHAT_PATH=/v2/text/chats
 ```
 
-### 2. Expected API Endpoints
+### Expected API Endpoints
 
 Your enterprise LLM must expose these endpoints:
 
@@ -171,28 +139,12 @@ Request:
   {"messages": [{"role": "user", "content": "..."}]}
 
 Response (any of these formats):
-  {"choices": [{"message": {"content": "..."}}]}  # OpenAI format
+  {"choices": [{"message": {"content": "..."}}]}  # Standard format
   {"message": {"content": "..."}}                 # Direct message
   {"content": "..."}                              # Direct content
 ```
 
-### 3. Testing with Mock Gateway
-
-For local development/testing without enterprise access:
-
-```bash
-# Terminal 1: Start mock gateway
-uvicorn utils.mock_enterprise_gateway:app --reload --port 8000
-
-# Terminal 2: Configure and run app
-set ACTIVE_LLM=enterprise
-set ENTERPRISE_BASE_URL=http://localhost:8000
-set ENTERPRISE_CLIENT_ID=test-client
-set ENTERPRISE_CLIENT_SECRET=test-secret
-streamlit run app.py
-```
-
-### 4. Enterprise Embeddings (Optional)
+### Enterprise Embeddings (Optional)
 
 If your enterprise also provides an embedding API:
 
@@ -203,11 +155,6 @@ ENTERPRISE_EMBEDDING_MODEL=text-embedding-ada-002
 ```
 
 ---
-
-### Adding New LLM
-
-1. Create `generator/llm/new_llm.py` implementing `BaseLLM`
-2. Add to `PROVIDERS` and `LLM_REGISTRY` in `__init__.py`
 
 ## Configuration
 
@@ -221,10 +168,11 @@ Edit `config/resources.py` to:
 
 ### LLM Settings
 
-Edit `config/settings.py` or use environment variables:
-- `OPENAI_API_KEY`
-- `OPENAI_MODEL` (default: gpt-3.5-turbo)
-- `ACTIVE_LLM` (openai/horizon/enterprise)
+Environment variables:
+- `ENTERPRISE_BASE_URL` - Your enterprise LLM endpoint
+- `ENTERPRISE_CLIENT_ID` - OAuth2 client ID
+- `ENTERPRISE_CLIENT_SECRET` - OAuth2 client secret
+- `ENTERPRISE_MODEL` - Model name (optional)
 
 ## Sample Prompts
 

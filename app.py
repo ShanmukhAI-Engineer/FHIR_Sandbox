@@ -59,26 +59,18 @@ def render_sidebar():
         llm_name = get_active_llm_name()
         st.info(f"Active LLM: **{llm_name.upper()}**")
         
-        # Check API key
-        if llm_name == "openai":
-            api_key = os.getenv("OPENAI_API_KEY")
-            if api_key:
-                st.success("✅ OpenAI API Key configured")
-            else:
-                st.error("❌ OPENAI_API_KEY not set")
-                st.code("set OPENAI_API_KEY=your-key", language="bash")
-        elif llm_name == "enterprise":
-            base_url = os.getenv("ENTERPRISE_BASE_URL")
-            client_id = os.getenv("ENTERPRISE_CLIENT_ID")
-            client_secret = os.getenv("ENTERPRISE_CLIENT_SECRET")
-            if base_url and client_id and client_secret:
-                st.success("✅ Enterprise LLM configured (OAuth2)")
-                st.caption(f"Base URL: {base_url[:40]}...")
-            else:
-                st.error("❌ Enterprise OAuth2 configuration incomplete")
-                if not base_url: st.warning("ENTERPRISE_BASE_URL missing")
-                if not client_id: st.warning("ENTERPRISE_CLIENT_ID missing")
-                if not client_secret: st.warning("ENTERPRISE_CLIENT_SECRET missing")
+        # Check Enterprise LLM configuration
+        base_url = os.getenv("ENTERPRISE_BASE_URL")
+        client_id = os.getenv("ENTERPRISE_CLIENT_ID")
+        client_secret = os.getenv("ENTERPRISE_CLIENT_SECRET")
+        if base_url and client_id and client_secret:
+            st.success("✅ Enterprise LLM configured (OAuth2)")
+            st.caption(f"Base URL: {base_url[:40]}..." if len(base_url) > 40 else f"Base URL: {base_url}")
+        else:
+            st.error("❌ Enterprise OAuth2 configuration incomplete")
+            if not base_url: st.warning("ENTERPRISE_BASE_URL missing")
+            if not client_id: st.warning("ENTERPRISE_CLIENT_ID missing")
+            if not client_secret: st.warning("ENTERPRISE_CLIENT_SECRET missing")
         
         st.divider()
         
