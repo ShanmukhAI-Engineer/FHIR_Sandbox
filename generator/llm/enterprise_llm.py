@@ -131,10 +131,6 @@ class EnterpriseLLM(BaseLLM):
             data = response.json()
             latency_ms = (time.time() - start_time) * 1000
             
-            # DEBUG: Log response for troubleshooting
-            print(f"[DEBUG] Enterprise LLM Response Status: {response.status_code}")
-            print(f"[DEBUG] Response Keys: {list(data.keys())}")
-            
             # Parse response - try multiple formats
             content = ""
             
@@ -161,12 +157,6 @@ class EnterpriseLLM(BaseLLM):
                 content = data.get("result", "")
             
             usage = data.get("usage", {})
-            
-            print(f"[DEBUG] Content Length: {len(content)} chars")
-            if len(content) < 500:
-                print(f"[DEBUG] Full Content: {content}")
-            else:
-                print(f"[DEBUG] Content Preview: {content[:300]}...")
             
             return LLMResponse(
                 content=content,
