@@ -1,5 +1,8 @@
 # SynthFHIR .gitignore
 
+# Antigravity Kit
+.agent/
+
 # Environment
 .env
 .env.local
