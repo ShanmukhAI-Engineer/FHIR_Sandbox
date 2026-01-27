@@ -143,19 +143,60 @@ class LocalEmbeddingModel:
         return self.dimension
 
 
-# Wrapper class for backward compatibility
+# Wrapper class with automatic fallback
 class EmbeddingModel:
-    """Unified embedding model that routes to local or enterprise provider"""
+    """Unified embedding model with automatic fallback: Enterprise → Local MiniLM"""
     
     def __init__(self, model_name: Optional[str] = None):
-        self.provider = os.getenv("EMBEDDING_PROVIDER", "local").lower()
+        self.provider = os.getenv("EMBEDDING_PROVIDER", "auto").lower()
+        self._model = None
+        self.dimension = 384  # Default for MiniLM
+        self.active_provider = None
         
-        if self.provider == "enterprise":
-            self._model = EnterpriseEmbeddingModel()
-        else:
+        self._initialize_model(model_name)
+    
+    def _initialize_model(self, model_name: Optional[str] = None):
+        """Initialize model with fallback logic"""
+        
+        # If explicitly set to local, use local only
+        if self.provider == "local":
+            print("[Embeddings] Using local embedding model (EMBEDDING_PROVIDER=local)")
             self._model = LocalEmbeddingModel(model_name)
+            self.active_provider = "local"
+            self.dimension = self._model.dimension
+            return
         
-        self.dimension = self._model.dimension
+        # Try enterprise first if configured (provider=enterprise or auto)
+        if self.provider in ["enterprise", "auto"]:
+            enterprise_url = os.getenv("ENTERPRISE_BASE_URL", "")
+            enterprise_id = os.getenv("ENTERPRISE_CLIENT_ID", "")
+            
+            if enterprise_url and enterprise_id:
+                try:
+                    print("[Embeddings] Trying enterprise embedding provider...")
+                    self._model = EnterpriseEmbeddingModel()
+                    # Test connection with a simple embed
+                    test_result = self._model.embed("test")
+                    if test_result:
+                        self.active_provider = "enterprise"
+                        self.dimension = self._model.dimension
+                        print(f"[Embeddings] ✅ Enterprise embeddings active (dim={self.dimension})")
+                        return
+                except Exception as e:
+                    print(f"[Embeddings] ⚠️ Enterprise embedding failed: {e}")
+        
+        # Fallback to local MiniLM
+        print("[Embeddings] Falling back to local MiniLM model...")
+        try:
+            self._model = LocalEmbeddingModel(model_name or "sentence-transformers/all-MiniLM-L6-v2")
+            self.active_provider = "local"
+            self.dimension = self._model.dimension
+            print(f"[Embeddings] ✅ Local MiniLM active (dim={self.dimension})")
+        except ImportError as e:
+            raise RuntimeError(
+                f"No embedding provider available. "
+                f"Either configure enterprise embeddings or install sentence-transformers: {e}"
+            )
     
     def embed(self, text: str) -> List[float]:
         return self._model.embed(text)
@@ -165,6 +206,10 @@ class EmbeddingModel:
     
     def get_dimension(self) -> int:
         return self._model.get_dimension()
+    
+    def get_provider_info(self) -> str:
+        """Return info about active provider"""
+        return f"{self.active_provider} (dim={self.dimension})"
 
 
 # Singleton instance for caching
