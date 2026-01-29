@@ -10,6 +10,19 @@ DDL_DIR = BASE_DIR / "ddl"
 KNOWLEDGE_DIR = BASE_DIR / "knowledge"
 TEMPLATES_DIR = BASE_DIR / "templates"
 
+# Standard columns to exclude (ETL/Platform metadata)
+STANDARD_EXCLUDES = [
+    "EDL_LOAD_DTM",
+    "EDL_RUN_ID",
+    "EDL_SCRTY_LVL_CD",
+    "EDL_LOB_CD",
+    "EDL_EXTRNL_LOAD_CD",
+    "EDL_SOR_CD",
+    "RCRD_EXCLSN_CD",
+    "SCRTY_LVL_CD",
+    "HASH_KEY",
+]
+
 # Resource Configurations
 RESOURCES = {
     "patient": {
@@ -18,31 +31,9 @@ RESOURCES = {
         "description": "FHIR Patient resource - demographics and identifiers",
         "ddl_file": str(DDL_DIR / "patient.sql"),
         "knowledge_dir": str(KNOWLEDGE_DIR / "patient"),
-        "template_file": str(TEMPLATES_DIR / "patient_sample.json"),
-        
-        # Columns to exclude from generation (ETL metadata, etc.)
-        "exclude_columns": [
-            "EDL_LOAD_DTM",
-            "EDL_RUN_ID",
-            "EDL_SCRTY_LVL_CD",
-            "EDL_LOB_CD",
-            "EDL_EXTRNL_LOAD_CD",
-            "EDL_SOR_CD",
-            "RCRD_EXCLSN_CD",
-            "SCRTY_LVL_CD",
-            "HASH_KEY",
-        ],
-        
-        # Fields to MD5 hash (PHI protection)
-        "md5_fields": [
-            # "IDENTIFIER[*].value",
-            # "NAME[*].family",
-            # "NAME[*].given[*]",
-            # "TELECOM[*].value",
-            # "ADDRESS[*].line[*]",
-        ],
-        
-        # Relationships to other resources
+        "template_file": str(TEMPLATES_DIR / "patient_golden.json"),
+        "exclude_columns": STANDARD_EXCLUDES,
+        "md5_fields": [],
         "relationships": [],
     },
     
@@ -52,21 +43,9 @@ RESOURCES = {
         "description": "FHIR Coverage resource - insurance information",
         "ddl_file": str(DDL_DIR / "coverage.sql"),
         "knowledge_dir": str(KNOWLEDGE_DIR / "coverage"),
-        "template_file": str(TEMPLATES_DIR / "coverage_sample.json"),
-        "exclude_columns": [
-            "EDL_LOAD_DTM",
-            "EDL_RUN_ID", 
-            "EDL_SCRTY_LVL_CD",
-            "EDL_LOB_CD",
-            "EDL_EXTRNL_LOAD_CD",
-            "EDL_SOR_CD",
-            "RCRD_EXCLSN_CD",
-            "SCRTY_LVL_CD",
-            "HASH_KEY",
-        ],
-        "md5_fields": [
-            # "SUBSCRIBER_ID",
-        ],
+        "template_file": str(TEMPLATES_DIR / "coverage_golden.json"),
+        "exclude_columns": STANDARD_EXCLUDES,
+        "md5_fields": [],
         "relationships": [
             {"column": "BENEFICIARY", "references": "patient.ID"},
         ],
@@ -78,18 +57,8 @@ RESOURCES = {
         "description": "FHIR Claim resource - billing and claims data",
         "ddl_file": str(DDL_DIR / "claim.sql"),
         "knowledge_dir": str(KNOWLEDGE_DIR / "claim"),
-        "template_file": str(TEMPLATES_DIR / "claim_sample.json"),
-        "exclude_columns": [
-            "EDL_LOAD_DTM",
-            "EDL_RUN_ID",
-            "EDL_SCRTY_LVL_CD", 
-            "EDL_LOB_CD",
-            "EDL_EXTRNL_LOAD_CD",
-            "EDL_SOR_CD",
-            "RCRD_EXCLSN_CD",
-            "SCRTY_LVL_CD",
-            "HASH_KEY",
-        ],
+        "template_file": str(TEMPLATES_DIR / "claim_golden.json"),
+        "exclude_columns": STANDARD_EXCLUDES,
         "md5_fields": [],
         "relationships": [
             {"column": "PATIENT", "references": "patient.ID"},
@@ -103,21 +72,96 @@ RESOURCES = {
         "description": "FHIR Observation resource - clinical observations and lab results",
         "ddl_file": str(DDL_DIR / "observation.sql"),
         "knowledge_dir": str(KNOWLEDGE_DIR / "observation"),
-        "template_file": str(TEMPLATES_DIR / "observation_sample.json"),
-        "exclude_columns": [
-            "EDL_LOAD_DTM",
-            "EDL_RUN_ID",
-            "EDL_SCRTY_LVL_CD",
-            "EDL_LOB_CD", 
-            "EDL_EXTRNL_LOAD_CD",
-            "EDL_SOR_CD",
-            "RCRD_EXCLSN_CD",
-            "SCRTY_LVL_CD",
-            "HASH_KEY",
-        ],
+        "template_file": str(TEMPLATES_DIR / "observation_golden.json"),
+        "exclude_columns": STANDARD_EXCLUDES,
         "md5_fields": [],
         "relationships": [
             {"column": "SUBJECT", "references": "patient.ID"},
+            {"column": "SUBJECT_REF", "references": "patient.ID"},
+        ],
+    },
+    
+    "practitioner": {
+        "enabled": True,
+        "display_name": "Practitioner",
+        "description": "FHIR Practitioner resource - healthcare professionals",
+        "ddl_file": str(DDL_DIR / "practitioner.sql"),
+        "knowledge_dir": str(KNOWLEDGE_DIR / "practitioner"),
+        "template_file": str(TEMPLATES_DIR / "practitioner_golden.json"),
+        "exclude_columns": STANDARD_EXCLUDES,
+        "md5_fields": [],
+        "relationships": [],
+    },
+    
+    "location": {
+        "enabled": True,
+        "display_name": "Location",
+        "description": "FHIR Location resource - physical locations",
+        "ddl_file": str(DDL_DIR / "location.sql"),
+        "knowledge_dir": str(KNOWLEDGE_DIR / "location"),
+        "template_file": str(TEMPLATES_DIR / "location_golden.json"),
+        "exclude_columns": STANDARD_EXCLUDES,
+        "md5_fields": [],
+        "relationships": [
+            {"column": "MANAGING_ORGANIZATION", "references": "organization.ID"},
+        ],
+    },
+    
+    "organization": {
+        "enabled": True,
+        "display_name": "Organization",
+        "description": "FHIR Organization resource - healthcare organizations",
+        "ddl_file": str(DDL_DIR / "organization.sql"),
+        "knowledge_dir": str(KNOWLEDGE_DIR / "organization"),
+        "template_file": str(TEMPLATES_DIR / "organization_golden.json"),
+        "exclude_columns": STANDARD_EXCLUDES,
+        "md5_fields": [],
+        "relationships": [],
+    },
+    
+    "encounter": {
+        "enabled": True,
+        "display_name": "Encounter",
+        "description": "FHIR Encounter resource - clinical interactions",
+        "ddl_file": str(DDL_DIR / "encounter.sql"),
+        "knowledge_dir": str(KNOWLEDGE_DIR / "encounter"),
+        "template_file": str(TEMPLATES_DIR / "encounter_golden.json"),
+        "exclude_columns": STANDARD_EXCLUDES,
+        "md5_fields": [],
+        "relationships": [
+            {"column": "SUBJECT", "references": "patient.ID"},
+            {"column": "SERVICE_PROVIDER", "references": "organization.ID"},
+        ],
+    },
+    
+    "condition": {
+        "enabled": True,
+        "display_name": "Condition",
+        "description": "FHIR Condition resource - diagnoses and health concerns",
+        "ddl_file": str(DDL_DIR / "condition.sql"),
+        "knowledge_dir": str(KNOWLEDGE_DIR / "condition"),
+        "template_file": str(TEMPLATES_DIR / "condition_golden.json"),
+        "exclude_columns": STANDARD_EXCLUDES,
+        "md5_fields": [],
+        "relationships": [
+            {"column": "SUBJECT", "references": "patient.ID"},
+            {"column": "ENCOUNTER", "references": "encounter.ID"},
+        ],
+    },
+    
+    "medication_request": {
+        "enabled": True,
+        "display_name": "Medication Request",
+        "description": "FHIR MedicationRequest resource - prescriptions",
+        "ddl_file": str(DDL_DIR / "medication_request.sql"),
+        "knowledge_dir": str(KNOWLEDGE_DIR / "medication_request"),
+        "template_file": str(TEMPLATES_DIR / "medication_request_golden.json"),
+        "exclude_columns": STANDARD_EXCLUDES,
+        "md5_fields": [],
+        "relationships": [
+            {"column": "SUBJECT", "references": "patient.ID"},
+            {"column": "ENCOUNTER", "references": "encounter.ID"},
+            {"column": "REQUESTER", "references": "practitioner.ID"},
         ],
     },
 }

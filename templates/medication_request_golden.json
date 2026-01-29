@@ -1,0 +1,35 @@
+{
+  "ID": "8a2faf22b4cb49099eea89add69802b2",
+  "STATUS": "active",
+  "INTENT": "order",
+  "MEDICATION": {
+    "concept": {
+      "coding": [
+        {
+          "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+          "code": "582400",
+          "display": "Acetaminophen 500 MG Oral Tablet"
+        }
+      ]
+    }
+  },
+  "SUBJECT": {
+    "reference": "Patient/c9e5964be76d41ac83641b78d83623cd"
+  },
+  "ENCOUNTER": {
+    "reference": "Encounter/d5a6300d9d074f5eb5fbc84f787a136f"
+  },
+  "AUTHORED_ON": "2023-10-01T10:30:00Z",
+  "REQUESTER": {
+    "reference": "Practitioner/79789e6ee4344da2a473c537573cfd1a"
+  },
+  "DOSAGE_INSTRUCTION": [
+    {
+      "text": "Take 1 tablet every 4-6 hours as needed for fever"
+    }
+  ],
+  "META": {
+    "versionId": "1"
+  },
+  "IDENTIFIER": []
+}

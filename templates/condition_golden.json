@@ -1,0 +1,49 @@
+{
+  "ID": "234969eb2b6b44eda5599840e6d2cd7e",
+  "CLINICAL_STATUS": {
+    "coding": [
+      {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+        "code": "active"
+      }
+    ]
+  },
+  "VERIFICATION_STATUS": {
+    "coding": [
+      {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+        "code": "confirmed"
+      }
+    ]
+  },
+  "CATEGORY": [
+    {
+      "coding": [
+        {
+          "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+          "code": "encounter-diagnosis"
+        }
+      ]
+    }
+  ],
+  "CODE": {
+    "coding": [
+      {
+        "system": "http://snomed.info/sct",
+        "code": "386661002",
+        "display": "Fever"
+      }
+    ]
+  },
+  "SUBJECT": {
+    "reference": "Patient/7b29b2f6fd9e4ff497dbce522682bea7"
+  },
+  "ENCOUNTER": {
+    "reference": "Encounter/12230a873d0a462faac20fc6c4f28b7c"
+  },
+  "RECORDED_DATE": "2023-10-01",
+  "META": {
+    "versionId": "1"
+  },
+  "IDENTIFIER": []
+}

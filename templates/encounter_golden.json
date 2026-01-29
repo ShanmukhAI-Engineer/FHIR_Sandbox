@@ -1,0 +1,45 @@
+{
+  "ID": "943bda453a684cddb28620dc7f8713eb",
+  "STATUS": "finished",
+  "CLASS": {
+    "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+    "code": "AMB",
+    "display": "ambulatory"
+  },
+  "TYPE": [
+    {
+      "coding": [
+        {
+          "system": "http://snomed.info/sct",
+          "code": "185345009",
+          "display": "Encounter for symptom"
+        }
+      ]
+    }
+  ],
+  "SUBJECT": {
+    "reference": "Patient/1a0d4529ec694a319cebd72e76acc1c5"
+  },
+  "PERIOD": {
+    "start": "2023-10-01T10:00:00Z",
+    "end": "2023-10-01T10:30:00Z"
+  },
+  "REASON_CODE": [
+    {
+      "coding": [
+        {
+          "system": "http://snomed.info/sct",
+          "code": "386661002",
+          "display": "Fever"
+        }
+      ]
+    }
+  ],
+  "SERVICE_PROVIDER": {
+    "reference": "Organization/1"
+  },
+  "META": {
+    "versionId": "1"
+  },
+  "IDENTIFIER": []
+}

@@ -1,0 +1,22 @@
+{
+  "ID": "e3644bc3eac747e4a6e56d2f49845515",
+  "STATUS": "active",
+  "NAME": "Jasonview Clinic",
+  "MODE": "instance",
+  "ADDRESS": {
+    "line": [
+      "283 Steven Groves"
+    ],
+    "city": "Lake Mark",
+    "state": "WI",
+    "postalCode": "07832",
+    "country": "USA"
+  },
+  "MANAGING_ORGANIZATION": {
+    "reference": "Organization/b14b8f20afaf4e60830f9cfe9753662f"
+  },
+  "META": {
+    "versionId": "1"
+  },
+  "IDENTIFIER": []
+}

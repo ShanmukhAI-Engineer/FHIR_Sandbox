@@ -182,6 +182,93 @@ def generate_mock_observation() -> Dict[str, Any]:
     }
     return observation
 
+def generate_mock_encounter() -> Dict[str, Any]:
+    """Generate a high-fidelity encounter record"""
+    patient_id = generate_clean_id()
+    return {
+        "ID": generate_clean_id(),
+        "STATUS": "finished",
+        "CLASS": {"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode", "code": "AMB", "display": "ambulatory"},
+        "TYPE": [{"coding": [{"system": "http://snomed.info/sct", "code": "185345009", "display": "Encounter for symptom"}]}],
+        "SUBJECT": {"reference": f"Patient/{patient_id}"},
+        "PERIOD": {"start": "2023-10-01T10:00:00Z", "end": "2023-10-01T10:30:00Z"},
+        "REASON_CODE": [{"coding": [{"system": "http://snomed.info/sct", "code": "386661002", "display": "Fever"}]}],
+        "SERVICE_PROVIDER": {"reference": "Organization/1"},
+        "META": {"versionId": "1"},
+        "IDENTIFIER": []
+    }
+
+def generate_mock_condition() -> Dict[str, Any]:
+    """Generate a high-fidelity condition record"""
+    patient_id = generate_clean_id()
+    return {
+        "ID": generate_clean_id(),
+        "CLINICAL_STATUS": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/condition-clinical", "code": "active"}]},
+        "VERIFICATION_STATUS": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/condition-ver-status", "code": "confirmed"}]},
+        "CATEGORY": [{"coding": [{"system": "http://terminology.hl7.org/CodeSystem/condition-category", "code": "encounter-diagnosis"}]}],
+        "CODE": {"coding": [{"system": "http://snomed.info/sct", "code": "386661002", "display": "Fever"}]},
+        "SUBJECT": {"reference": f"Patient/{patient_id}"},
+        "ENCOUNTER": {"reference": f"Encounter/{generate_clean_id()}"},
+        "RECORDED_DATE": "2023-10-01",
+        "META": {"versionId": "1"},
+        "IDENTIFIER": []
+    }
+
+def generate_mock_medication_request() -> Dict[str, Any]:
+    """Generate a high-fidelity medication request record"""
+    patient_id = generate_clean_id()
+    return {
+        "ID": generate_clean_id(),
+        "STATUS": "active",
+        "INTENT": "order",
+        "MEDICATION": {"concept": {"coding": [{"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "582400", "display": "Acetaminophen 500 MG Oral Tablet"}]}},
+        "SUBJECT": {"reference": f"Patient/{patient_id}"},
+        "ENCOUNTER": {"reference": f"Encounter/{generate_clean_id()}"},
+        "AUTHORED_ON": "2023-10-01T10:30:00Z",
+        "REQUESTER": {"reference": f"Practitioner/{generate_clean_id()}"},
+        "DOSAGE_INSTRUCTION": [{"text": "Take 1 tablet every 4-6 hours as needed for fever"}],
+        "META": {"versionId": "1"},
+        "IDENTIFIER": []
+    }
+
+def generate_mock_organization() -> Dict[str, Any]:
+    """Generate a high-fidelity organization record"""
+    return {
+        "ID": generate_clean_id(),
+        "ACTIVE": "true",
+        "NAME": fake.company(),
+        "TELECOM": [{"system": "phone", "value": fake.phone_number(), "use": "work"}],
+        "ADDRESS": [{"line": [fake.street_address()], "city": fake.city(), "state": fake.state_abbr(), "postalCode": fake.zipcode(), "country": "USA"}],
+        "META": {"versionId": "1"},
+        "IDENTIFIER": []
+    }
+
+def generate_mock_location() -> Dict[str, Any]:
+    """Generate a high-fidelity location record"""
+    return {
+        "ID": generate_clean_id(),
+        "STATUS": "active",
+        "NAME": f"{fake.city()} Clinic",
+        "MODE": "instance",
+        "ADDRESS": {"line": [fake.street_address()], "city": fake.city(), "state": fake.state_abbr(), "postalCode": fake.zipcode(), "country": "USA"},
+        "MANAGING_ORGANIZATION": {"reference": f"Organization/{generate_clean_id()}"},
+        "META": {"versionId": "1"},
+        "IDENTIFIER": []
+    }
+
+def generate_mock_practitioner() -> Dict[str, Any]:
+    """Generate a high-fidelity practitioner record"""
+    return {
+        "ID": generate_clean_id(),
+        "ACTIVE": "true",
+        "NAME": [{"family": fake.last_name(), "given": [fake.first_name()], "prefix": ["Dr."]}],
+        "TELECOM": [{"system": "phone", "value": fake.phone_number(), "use": "work"}],
+        "GENDER": random.choice(["male", "female"]),
+        "BIRTHDATE": "1980-05-15",
+        "META": {"versionId": "1"},
+        "IDENTIFIER": []
+    }
+
 def generate_and_save_template(resource: str, output_dir: str = "templates"):
     """Generate a template and save it to file"""
     Path(output_dir).mkdir(exist_ok=True)
@@ -190,7 +277,13 @@ def generate_and_save_template(resource: str, output_dir: str = "templates"):
         "patient": generate_mock_patient,
         "coverage": generate_mock_coverage,
         "claim": generate_mock_claim,
-        "observation": generate_mock_observation
+        "observation": generate_mock_observation,
+        "encounter": generate_mock_encounter,
+        "condition": generate_mock_condition,
+        "medication_request": generate_mock_medication_request,
+        "organization": generate_mock_organization,
+        "location": generate_mock_location,
+        "practitioner": generate_mock_practitioner
     }
     
     if resource not in generators:
@@ -205,5 +298,10 @@ def generate_and_save_template(resource: str, output_dir: str = "templates"):
     print(f"Generated golden template: {filename}")
 
 if __name__ == "__main__":
-    for res in ["patient", "coverage", "claim", "observation"]:
+    resources = [
+        "patient", "coverage", "claim", "observation", 
+        "encounter", "condition", "medication_request",
+        "organization", "location", "practitioner"
+    ]
+    for res in resources:
         generate_and_save_template(res)

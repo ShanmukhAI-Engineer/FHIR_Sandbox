@@ -1,0 +1,27 @@
+{
+  "ID": "8cf4e3e45c974d68ae56ca50196af0c9",
+  "ACTIVE": "true",
+  "NAME": "Ramirez-Lewis",
+  "TELECOM": [
+    {
+      "system": "phone",
+      "value": "001-851-316-1559x40781",
+      "use": "work"
+    }
+  ],
+  "ADDRESS": [
+    {
+      "line": [
+        "959 Janet Cape Apt. 413"
+      ],
+      "city": "South Joshuastad",
+      "state": "GA",
+      "postalCode": "49021",
+      "country": "USA"
+    }
+  ],
+  "META": {
+    "versionId": "1"
+  },
+  "IDENTIFIER": []
+}

@@ -70,3 +70,6 @@ htmlcov/
 # Temporary files
 *.tmp
 *.temp
+
+# Machine Learning Models
+models/
