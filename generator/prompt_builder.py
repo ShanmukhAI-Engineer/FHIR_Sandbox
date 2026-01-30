@@ -73,14 +73,27 @@ CRITICAL RULES:
             parts.append(constraints)
             parts.append("")
         
-        # 4. RELATIONSHIPS (Stateful ID mapping)
+        # 4. RELATIONSHIPS (Stateful ID and Attribute mapping)
         if relationship_context:
             parts.append("## RELATIONSHIPS")
-            parts.append("To maintain referential integrity, use the following IDs for reference fields:")
-            for res_type, ids in relationship_context.items():
-                if ids:
-                    parts.append(f"- {res_type.upper()} IDs: {', '.join(ids[:20])}") # Limit to avoid token bloat
-            parts.append("Randomly select from these IDs when a resource needs to reference another.")
+            parts.append("To maintain referential integrity, use the following Parent records. If you pick an ID, you MUST use its associated values (e.g., MCID) for the current record:")
+            for res_type, records in relationship_context.items():
+                if records:
+                    parts.append(f"### {res_type.upper()} Context:")
+                    for record in records[:15]: # Limit to avoid token bloat
+                        rec_id = record.get("ID") or record.get("id")
+                        if rec_id:
+                            # Map other common linking attributes
+                            # We include MCID as it's a critical linking field discovered in user feedback
+                            attributes = []
+                            for attr in ["MCID", "MCID_ID", "MASTER_CONSUMER_ID", "MBR_ID", "MBR_ID_ID"]:
+                                if attr in record:
+                                    attributes.append(f"{attr}: {record[attr]}")
+                            
+                            attr_str = f" ( {', '.join(attributes)} )" if attributes else ""
+                            parts.append(f"- ID: {rec_id}{attr_str}")
+            parts.append("")
+            parts.append("CRITICAL: When generating a child resource (like Claim), if it has a field that exists in the Parent (like MCID), it MUST match the selected Parent's value exactly.")
             parts.append("")
 
         # 5. User Request

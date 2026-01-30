@@ -63,7 +63,7 @@ class TableGenerator:
             Dict mapping resource name to GenerationResult
         """
         results = {}
-        context_ids = {} # Keep track of generated IDs for relationships
+        context_data = {} # Keep track of generated records for relationships
         
         for resource in resources:
             result = self._generate_resource(
@@ -73,21 +73,13 @@ class TableGenerator:
                 quick_inputs=quick_inputs,
                 temperature=temperature,
                 max_tokens=max_tokens,
-                relationship_context=context_ids
+                relationship_context=context_data
             )
             results[resource] = result
             
-            # Store newly generated IDs for the next resource
+            # Store newly generated records for the next resource
             if result.success and result.data:
-                resource_ids = []
-                for record in result.data:
-                    if "ID" in record:
-                        resource_ids.append(record["ID"])
-                    elif "id" in record:
-                        resource_ids.append(record["id"])
-                
-                if resource_ids:
-                    context_ids[resource] = resource_ids
+                context_data[resource] = result.data
         
         return results
     
@@ -99,7 +91,7 @@ class TableGenerator:
         quick_inputs: Dict = None,
         temperature: float = 0.7,
         max_tokens: int = 4000,
-        relationship_context: Optional[Dict[str, List[str]]] = None
+        relationship_context: Optional[Dict[str, List[Dict[str, Any]]]] = None
     ) -> GenerationResult:
         """Generate data for a single resource"""
         warnings = []
