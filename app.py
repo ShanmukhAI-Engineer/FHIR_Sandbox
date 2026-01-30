@@ -386,6 +386,10 @@ def render_results_tab():
                     for k, v in record.items():
                         if isinstance(v, (dict, list)):
                             display_record[k] = json.dumps(v)[:100] + "..." if len(json.dumps(v)) > 100 else json.dumps(v)
+                        elif isinstance(v, int) and (v > 9007199254740991 or v < -9007199254740991):
+                            # Convert large integers to string to avoid OverflowError in st.dataframe
+                            # Using JavaScript's Number.MAX_SAFE_INTEGER as a conservative threshold
+                            display_record[k] = str(v)
                         else:
                             display_record[k] = v
                     display_data.append(display_record)
