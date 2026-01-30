@@ -47,17 +47,6 @@ CRITICAL RULES:
         # Build user message parts
         parts = []
         
-        # Try to load golden template if not provided
-        if not sample_template and len(resources) == 1:
-            resource = resources[0].lower()
-            template_path = Path(f"templates/{resource}_golden.json")
-            if template_path.exists():
-                try:
-                    with open(template_path, "r", encoding="utf-8") as f:
-                        sample_template = f.read()
-                except Exception as e:
-                    print(f"Failed to load template: {e}")
-        
         # 1. Table Structure (DDL)
         if ddl_context:
             parts.append("## TABLE STRUCTURE")

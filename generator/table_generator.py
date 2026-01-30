@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from .llm import get_llm, LLMResponse
 from .prompt_builder import PromptBuilder
 from rag import get_retriever, RetrievalResult
+from config import get_resource_config
 from utils.logger import get_logger
 from utils.ddl_parser import get_columns_from_ddl
 
@@ -129,12 +130,26 @@ class TableGenerator:
         if required_columns:
             logger.debug(f"Enforcing {len(required_columns)} columns for {resource}")
  
+        # Load template if configured
+        sample_template = None
+        config = get_resource_config(resource)
+        if config and config.get("template_file"):
+            template_path = Path(config["template_file"])
+            if template_path.exists():
+                try:
+                    with open(template_path, "r", encoding="utf-8") as f:
+                        sample_template = f.read()
+                    logger.debug(f"Loaded custom template for {resource} from {template_path}")
+                except Exception as e:
+                    logger.error(f"Failed to load template for {resource}: {e}")
+
         # Build prompt
         system_message, user_message = self.prompt_builder.build_prompt(
             user_prompt=user_prompt,
             resources=[resource],
             ddl_context=retrieval.context,
             guidelines_context="",  # Already included in retrieval.context
+            sample_template=sample_template,
             quick_inputs=quick_inputs,
             record_count=record_count,
             required_columns=required_columns,
