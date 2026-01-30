@@ -6,6 +6,7 @@ import json
 import re
 from typing import List, Dict, Optional, Any
 from dataclasses import dataclass
+from pathlib import Path
 
 from .llm import get_llm, LLMResponse
 from .prompt_builder import PromptBuilder
