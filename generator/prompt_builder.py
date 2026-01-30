@@ -83,17 +83,24 @@ CRITICAL RULES:
                     for record in records[:15]: # Limit to avoid token bloat
                         rec_id = record.get("ID") or record.get("id")
                         if rec_id:
-                            # Map other common linking attributes
-                            # We include MCID as it's a critical linking field discovered in user feedback
+                            # Map common healthcare linking tokens and IDs
                             attributes = []
-                            for attr in ["MCID", "MCID_ID", "MASTER_CONSUMER_ID", "MBR_ID", "MBR_ID_ID"]:
+                            common_attrs = [
+                                "MCID", "MCID_ID", "MASTER_CONSUMER_ID", "MBR_ID", "MBR_ID_ID",
+                                "PROVIDER_ID", "PRV_ID", "PHYSICIAN_ID", "NPI",
+                                "ORGANIZATION_ID", "ORG_ID", "FACILITY_ID",
+                                "ENCOUNTER_ID", "ENC_ID", "CLAIM_ID", "CLM_ID",
+                                "PLAN_ID", "GROUP_ID"
+                            ]
+                            for attr in common_attrs:
                                 if attr in record:
                                     attributes.append(f"{attr}: {record[attr]}")
                             
                             attr_str = f" ( {', '.join(attributes)} )" if attributes else ""
                             parts.append(f"- ID: {rec_id}{attr_str}")
             parts.append("")
-            parts.append("CRITICAL: When generating a child resource (like Claim), if it has a field that exists in the Parent (like MCID), it MUST match the selected Parent's value exactly.")
+            parts.append("CRITICAL: DATA CONSISTENCY RULE")
+            parts.append("If the current resource has a field that exists in any of the Parent Contexts above (e.g., MCID, PRV_ID, ORG_ID), you MUST use the exact value from the specific Parent ID you select.")
             parts.append("")
 
         # 5. User Request
