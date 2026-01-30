@@ -47,6 +47,8 @@ def init_session_state():
         st.session_state.generation_status = None
     if "indexed_resources" not in st.session_state:
         st.session_state.indexed_resources = set()
+    if "session_history" not in st.session_state:
+        st.session_state.session_history = {} # resource -> List[Dict]
 
 
 def render_sidebar():
@@ -148,14 +150,20 @@ def render_generation_tab():
             default=["patient"] if "patient" in enabled_resources else []
         )
         
-        st.markdown("### 🔢 Record Count")
-        record_count = st.number_input(
-            "Number of records:",
-            min_value=1,
-            max_value=100,
-            value=5,
-            key="record_count"
-        )
+        st.markdown("### 🔢 Record Counts")
+        granular_counts = {}
+        if selected_resources:
+            for res in selected_resources:
+                # Use a specific key for each resource to maintain state
+                granular_counts[res] = st.number_input(
+                    f"Count for {display_names.get(res, res)}:",
+                    min_value=1,
+                    max_value=100,
+                    value=5,
+                    key=f"count_{res}"
+                )
+        else:
+            st.info("Select resources to set counts.")
     
     with col2:
         st.markdown("### ⚡ Quick Inputs (Optional)")
@@ -223,6 +231,13 @@ def render_generation_tab():
     with st.expander("📤 Output Options"):
         apply_md5 = st.checkbox("Apply MD5 hashing to PHI fields", value=True)
         validate_output = st.checkbox("Validate generated data", value=True)
+        use_session_context = st.checkbox("🔄 Use existing session data as context", value=True, help="Tells the AI to maintain consistency with previously generated records in this session.")
+        
+        if st.session_state.session_history:
+            if st.button("🗑️ Clear Session History"):
+                st.session_state.session_history = {}
+                st.success("Session history cleared!")
+                st.rerun()
     
     st.divider()
     
@@ -250,10 +265,11 @@ def render_generation_tab():
                 results = generator.generate(
                     user_prompt=user_prompt,
                     resources=selected_resources,
-                    record_count=record_count,
+                    record_count=granular_counts,
                     quick_inputs=quick_inputs if quick_inputs else None,
                     temperature=temperature,
-                    max_tokens=max_tokens
+                    max_tokens=max_tokens,
+                    session_context=st.session_state.session_history if use_session_context else None
                 )
                 
                 # Process results
@@ -280,6 +296,11 @@ def render_generation_tab():
                         all_data[resource] = data
                         logger.info(f"Successfully generated {len(data)} records for {resource}")
                         st.success(f"✅ {resource}: Generated {len(data)} records")
+                        
+                        # Update session history
+                        if resource not in st.session_state.session_history:
+                            st.session_state.session_history[resource] = []
+                        st.session_state.session_history[resource].extend(data)
                     else:
                         logger.error(f"Failed to generate {resource}: {result.error}")
                         st.error(f"❌ {resource}: {result.error}")

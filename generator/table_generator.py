@@ -4,7 +4,7 @@ Table Generator - Generate synthetic data matching DDL structure
 
 import json
 import re
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Union
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -43,37 +43,39 @@ class TableGenerator:
         self,
         user_prompt: str,
         resources: List[str],
-        record_count: int = 10,
+        record_count: Union[int, Dict[str, int]] = 10,
         quick_inputs: Dict = None,
         temperature: float = 0.7,
-        max_tokens: int = 4000
+        max_tokens: int = 4000,
+        session_context: Optional[Dict[str, List[Dict[str, Any]]]] = None
     ) -> Dict[str, GenerationResult]:
         """
         Generate synthetic data for specified resources.
-        
-        Args:
-            user_prompt: Natural language description of what to generate
-            resources: List of resources to generate (e.g., ["patient", "claim"])
-            record_count: Number of records to generate per resource
-            quick_inputs: Structured inputs (age, gender, state, etc.)
-            temperature: LLM temperature
-            max_tokens: Max tokens for LLM response
-            
-        Returns:
-            Dict mapping resource name to GenerationResult
         """
         results = {}
         context_data = {} # Keep track of generated records for relationships
         
+        # If we have session context, pre-seed context_data with it
+        if session_context:
+            context_data.update(session_context)
+        
         for resource in resources:
+            # Determine count for this specific resource
+            res_count = 10
+            if isinstance(record_count, int):
+                res_count = record_count
+            elif isinstance(record_count, dict):
+                res_count = record_count.get(resource, 5)
+
             result = self._generate_resource(
                 resource=resource,
                 user_prompt=user_prompt,
-                record_count=record_count,
+                record_count=res_count,
                 quick_inputs=quick_inputs,
                 temperature=temperature,
                 max_tokens=max_tokens,
-                relationship_context=context_data
+                relationship_context=context_data,
+                session_context=session_context
             )
             results[resource] = result
             
@@ -91,7 +93,8 @@ class TableGenerator:
         quick_inputs: Dict = None,
         temperature: float = 0.7,
         max_tokens: int = 4000,
-        relationship_context: Optional[Dict[str, List[Dict[str, Any]]]] = None
+        relationship_context: Optional[Dict[str, List[Dict[str, Any]]]] = None,
+        session_context: Optional[Dict[str, List[Dict[str, Any]]]] = None
     ) -> GenerationResult:
         """Generate data for a single resource"""
         warnings = []
@@ -146,7 +149,8 @@ class TableGenerator:
             quick_inputs=quick_inputs,
             record_count=record_count,
             required_columns=required_columns,
-            relationship_context=relationship_context
+            relationship_context=relationship_context,
+            session_context=session_context
         )
         
         logger.debug(f"Prompt built for {resource}. System msg length: {len(system_message)}")

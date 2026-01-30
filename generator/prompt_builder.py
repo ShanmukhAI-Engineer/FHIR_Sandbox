@@ -103,6 +103,17 @@ CRITICAL RULES:
             parts.append("If the current resource has a field that exists in any of the Parent Contexts above (e.g., MCID, PRV_ID, ORG_ID), you MUST use the exact value from the specific Parent ID you select.")
             parts.append("")
 
+        # 4a. SESSION HISTORY (Few-shot learning from previous runs)
+        if session_context and resources[0] in session_context:
+            history = session_context[resources[0]]
+            if history:
+                parts.append("## SESSION HISTORY")
+                parts.append(f"You have already generated these {resources[0]} records in this session. Maintain the same data style, naming conventions, and value ranges:")
+                # Show up to 3 examples
+                for record in history[:3]:
+                    parts.append(json.dumps(record))
+                parts.append("")
+
         # 5. User Request
         parts.append("## USER REQUEST")
         parts.append(user_prompt)
