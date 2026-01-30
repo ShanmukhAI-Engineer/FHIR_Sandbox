@@ -115,3 +115,30 @@ If a column requires complex logic or is frequently skipped, add a specific inst
 
 ### D. Verify DDL Synced
 Ensure the column exists in the `.sql` file in the `ddl/` folder and that you have reindexed the documents.
+
+---
+
+## 5. Managing Business Rules
+
+SynthFHIR uses a **Multi-Layered Rule System** powered by RAG. This allows you to enforce clinical and business logic without changing code.
+
+### A. Resource-Specific Rules
+Use these for logic that only applies to one resource (e.g., "Claims must have a total > $0").
+- **Action**: Place a `.txt` or `.md` file in `knowledge/[resource]/`.
+- **Example**: `knowledge/claim/financial_rules.txt`
+
+### B. Global Rules
+Use these for logic that applies to EVERY record (e.g., "No field should contain 'NULL' as a string").
+- **Action**: Place a file in `knowledge/global/`.
+- **Note**: The system automatically searches the `global` folder for every generation request.
+
+### C. Prompt-Level Rules
+Use these for ad-hoc requests (e.g., "Generate only 2024 records").
+- **Action**: Type these directly into the **Prompt** text area in the UI.
+
+### D. Hard-Coded Rules (Config)
+For structural rules like relationships or hashing:
+- **Action**: Update the `relationships` or `md5_fields` in `config/resources.py`.
+
+> [!IMPORTANT]
+> **Reindexing is Required**: Whenever you add or change a file in the `knowledge/` or `ddl/` folders, you **must** click the **"🔄 Reindex Documents"** button in the Streamlit sidebar to update the "brain" of the generator.
