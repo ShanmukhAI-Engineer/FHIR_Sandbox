@@ -159,9 +159,27 @@ RESOURCES = {
         "exclude_columns": STANDARD_EXCLUDES,
         "md5_fields": [],
         "relationships": [
-            {"column": "SUBJECT", "references": "patient.ID"},
-            {"column": "ENCOUNTER", "references": "encounter.ID"},
-            {"column": "REQUESTER", "references": "practitioner.ID"},
+            {
+                "column": "SUBJECT", 
+                "references": "patient.ID",
+                "map_attributes": {
+                    "patient.MCID": "SUBJECT_MCID",
+                    "patient.FIRST_NAME": "SUBJECT_FIRST_NAME",
+                    "patient.LAST_NAME": "SUBJECT_LAST_NAME"
+                }
+            },
+            {
+                "column": "ENCOUNTER", 
+                "references": "encounter.ID"
+            },
+            {
+                "column": "REQUESTER", 
+                "references": "practitioner.ID",
+                "map_attributes": {
+                    "practitioner.NPI": "REQUESTER_NPI",
+                    "practitioner.NAME_TEXT": "REQUESTER_NAME"
+                }
+            },
         ],
     },
 }

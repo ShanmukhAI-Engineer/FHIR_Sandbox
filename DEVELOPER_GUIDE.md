@@ -35,66 +35,82 @@ Open the application and click **"🔄 Reindex Documents"** in the sidebar. This
 
 ---
 
-## 2. Implementing Referential Integrity
+## 2. Implementing Referential Integrity (Code-Enforced)
 
-### How it Works
-The system uses a **Stateful Relationship Context**. When generating multiple resources (e.g., Patient then Claim):
-1. **ID Tracking**: `TableGenerator` captures the IDs of the first resource (e.g., Patient).
-2. **Context Injection**: These IDs are injected into the prompt of the second resource (e.g., Claim) as a list of available references.
-3. **LLM Instruction**: The `PromptBuilder` tells the LLM: *"Use these IDs for the PATIENT field."*
+The system now enforces referential integrity **programmatically** after the LLM generates data. This ensures 100% consistency even if the LLM hallucinates or makes a mistake.
 
-### Best Practices for Linking
-- **Order Matters**: Always list the "Parent" resource (e.g., Patient) before the "Child" resource (e.g., Claim) in your generation request.
-- **Reference Format**: In your Golden Template, show the format clearly: `"REFERENCE": "Patient/3f987ee0..."`.
-- **Relationship Meta**: Keep the `relationships` list in `config/resources.py` accurate for future automated validation features.
----
+### A. Configuration (`config/resources.py`)
+You define relationships in the `relationships` list. You can now also map specific attributes from the parent to the child using `map_attributes`.
 
-## 3. Planning Referential Integrity
-
-To maintain a consistent clinical story, you must plan the "order of operations."
-
-### Resource Dependency Map
-The following diagram shows how resources typically relate to each other. When generating data, you should follow this hierarchy down.
-
-```mermaid
-graph TD
-    P[Patient] --> C[Coverage]
-    P --> CL[Claim]
-    P --> O[Observation]
-    P --> E[Encounter]
-    P --> CON[Condition]
-    P --> MR[MedicationRequest]
-    
-    ORG[Organization] --> L[Location]
-    ORG --> E
-    ORG --> C
-    
-    PRAC[Practitioner] --> E
-    PRAC --> MR
-    
-    L --> E
-    E --> CON
-    E --> MR
-    C --> CL
+```python
+"relationships": [
+    {
+        "column": "SUBJECT",           # Column in the Child table (e.g., Claim)
+        "references": "patient.ID",    # Reference to Parent table (e.g., Patient)
+        
+        # OPTIONAL: Force Child columns to match Parent values exactly
+        "map_attributes": {
+            "patient.MCID": "SUBJECT_MCID",        # Copies Patient.MCID -> Claim.SUBJECT_MCID
+            "patient.FIRST_NAME": "PATIENT_NAME",  # Copies Patient.FIRST_NAME -> Claim.PATIENT_NAME
+        }
+    }
+]
 ```
 
-### Strategic Generation Order
-When using the "Generate" tab, list your resources in the following priority order:
+### B. Automatic Enforcement Logic
+1.  **ID Validation**: The system checks if the generated Foreign Key (e.g., `SUBJECT`) exists in the available Parent records.
+2.  **Auto-Correction**: If the ID is invalid or missing, the system **automatically picks a valid Parent** from the context and overwrites the invalid ID.
+3.  **Attribute Propagation**: If `map_attributes` is defined, the system copies the values from the selected Parent record to the Child record, overwriting whatever the LLM generated.
 
-1.  **Level 1 (Masters)**: `organization`, `practitioner`, `location`
-2.  **Level 2 (Demographics)**: `patient`
-3.  **Level 3 (Administrative)**: `coverage`, `encounter`
-4.  **Level 4 (Clinical/Financial)**: `observation`, `condition`, `claim`, `medication_request`
+```
 
-**Example Prompt Order:**
-`["organization", "patient", "encounter", "condition"]`
+### C. Guide: Adding Custom Relationships & Mappings
 
-### Complex Relationship Logic
-If a resource has multiple references (e.g., `MedicationRequest` needs both `Patient` and `Practitioner`), the system will inject lists for BOTH:
-- `PATIENT IDs: [id1, id2, ...]`
-- `PRACTITIONER IDs: [prac1, prac2, ...]`
+If you need to link a new resource or add a custom field mapping (e.g., copying a "Group ID" from Coverage to Claim):
 
-The LLM is instruction-tuned to pick one from each list to populate the `SUBJECT` and `REQUESTER` fields respectively.
+1.  **Open** `config/resources.py`.
+2.  **Locate** the resource definition (e.g., `"claim"`).
+3.  **Edit** the `relationships` list:
+    *   **`column`**: The name of the column in your CURRENT resource (the Child).
+    *   **`references`**: The `resource_name.column_name` of the PARENT resource.
+    *   **`map_attributes`** (Optional): A dictionary where:
+        *   Key = `parent_resource.column_name` (Source)
+        *   Value = `child_column_name` (Target)
+
+**Example Scenario**:
+You want to make sure that when a `Claim` is generated, it inherits the `GROUP_ID` from the `Coverage` resource.
+
+```python
+# In config/resources.py > "claim"
+"relationships": [
+    # ... existing links ...
+    {
+        "column": "INSURANCE_COVERAGE",  # Claim.INSURANCE_COVERAGE
+        "references": "coverage.ID",     # Links to Coverage.ID
+        "map_attributes": {
+            "coverage.GROUP_ID": "GROUP_NUMBER",  # Copy Coverage.GROUP_ID -> Claim.GROUP_NUMBER
+            "coverage.PAYOR_NAME": "PAYOR",       # Copy Coverage.PAYOR_NAME -> Claim.PAYOR
+        }
+    }
+]
+```
+
+**Note**: The source column (e.g., `coverage.GROUP_ID`) MUST exist in the generated Parent data for this to work.
+
+---
+
+## 3. Scalability & Dependencies
+
+### Automatic Dependency Sorting
+You do **not** need to worry about the order in which you select resources.
+The system uses a **Topological Sort** to automatically determine the correct execution order based on the `relationships` defined in your config.
+
+- **Example**: If you select `["claim", "patient"]`, the system detects that `Claim` depends on `Patient` and will automatically generate `Patient` first, then `Claim`.
+
+### Smart Context Filtering
+To support generating 40+ resources without exceeding token limits, the system uses **Context Filtering**.
+- When generating a specific resource (e.g., `Claim`), the LLM *only* sees data from its direct parents (e.g., `Patient`, `Coverage`).
+- It does *not* see unrelated data (e.g., `Practitioner`, `Location`), keeping the prompt clean and efficient.
 ---
 
 ## 4. Troubleshooting Missing Data

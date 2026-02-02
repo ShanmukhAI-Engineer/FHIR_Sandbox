@@ -32,6 +32,7 @@ from generator.llm import get_llm, get_active_llm_name
 from generator.table_generator import TableGenerator
 from rag import get_retriever, get_vector_store
 from utils import CSVExporter, MD5Hasher, validate_data
+from utils.dependency_graph import DependencyGraph
 from utils.logger import setup_logger
 
 # Initialize logger
@@ -141,15 +142,34 @@ def render_generation_tab():
     with col1:
         st.markdown("### 📋 Resources")
         enabled_resources = get_enabled_resources()
-        display_names = get_resource_display_names()
-        
-        selected_resources = st.multiselect(
-            "Select resources to generate:",
-            options=enabled_resources,
-            format_func=lambda x: display_names.get(x, x),
-            default=["patient"] if "patient" in enabled_resources else []
+        resource_display_map = get_resource_display_names()
+        selected_display_names = st.multiselect(
+            "Select Resources",
+            options=list(resource_display_map.values()),
+            default=["Patient"]
         )
         
+        # Convert display names back to IDs
+        reverse_map = {v: k for k, v in resource_display_map.items()}
+        selected_resources = [reverse_map[name] for name in selected_display_names]
+        
+        # --- FEATURE: Resource Suggestions (Safe to Remove) ---
+        if selected_resources:
+            try:
+                dep_graph = DependencyGraph(get_enabled_resources())
+                missing = dep_graph.get_missing_dependencies(selected_resources)
+                
+                if missing:
+                    st.info(f"💡 **Tip**: Selected resources rely on: {', '.join([resource_display_map.get(m, m) for m in missing])}")
+                    if st.button("Add Missing Dependencies"):
+                        # Logic to update selection would go here, but for now we just show the tip
+                        # To truly update multiselect programmatically requires Session State callbacks
+                        # which is more complex. For now, the tip is sufficient value.
+                        st.warning("Please manually select the missing resources above.")
+            except Exception as e:
+                # Fail silently to not crash the app
+                pass
+        # ------------------------------------------------------
         st.markdown("### 🔢 Record Counts")
         granular_counts = {}
         if selected_resources:

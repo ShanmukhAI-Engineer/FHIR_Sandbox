@@ -14,6 +14,8 @@ from rag import get_retriever, RetrievalResult
 from config import get_resource_config
 from utils.logger import get_logger
 from utils.ddl_parser import get_columns_from_ddl
+from utils.dependency_graph import DependencyGraph
+import random
 
 logger = get_logger("generator")
 
@@ -59,7 +61,12 @@ class TableGenerator:
         if session_context:
             context_data.update(session_context)
         
-        for resource in resources:
+        # Auto-sort resources based on dependencies
+        dep_graph = DependencyGraph(resources)
+        sorted_resources = dep_graph.get_execution_order()
+        logger.info(f"Execution order: {sorted_resources}")
+        
+        for resource in sorted_resources:
             # Determine count for this specific resource
             res_count = 10
             if isinstance(record_count, int):
@@ -77,6 +84,14 @@ class TableGenerator:
                 relationship_context=context_data,
                 session_context=session_context
             )
+            
+            # Post-processing: Enforce Integrity
+            if result.success and result.data:
+                 result.data = self._enforce_referential_integrity(
+                     resource=resource,
+                     data=result.data,
+                     context=context_data
+                 )
             results[resource] = result
             
             # Store newly generated records for the next resource
@@ -96,6 +111,23 @@ class TableGenerator:
         relationship_context: Optional[Dict[str, List[Dict[str, Any]]]] = None,
         session_context: Optional[Dict[str, List[Dict[str, Any]]]] = None
     ) -> GenerationResult:
+        # Filter context to ONLY what is needed for this resource
+        filtered_context = {}
+        if relationship_context:
+            res_config = get_resource_config(resource)
+            if res_config:
+                # Get list of parent resources this resource actually depends on
+                needed_parents = set()
+                for rel in res_config.get("relationships", []):
+                     ref = rel.get("references", "").split(".")[0]
+                     if ref:
+                         needed_parents.add(ref)
+                
+                # Filter context
+                for parent, data in relationship_context.items():
+                    if parent in needed_parents:
+                        filtered_context[parent] = data
+
         """Generate data for a single resource"""
         warnings = []
         
@@ -149,7 +181,7 @@ class TableGenerator:
             quick_inputs=quick_inputs,
             record_count=record_count,
             required_columns=required_columns,
-            relationship_context=relationship_context,
+            relationship_context=filtered_context,
             session_context=session_context
         )
         
@@ -250,6 +282,70 @@ class TableGenerator:
             return [], f"Invalid JSON: {str(e)}"
         except Exception as e:
             return [], f"Unexpected error: {str(e)}"
+
+    def _enforce_referential_integrity(
+        self,
+        resource: str,
+        data: List[Dict[str, Any]],
+        context: Dict[str, List[Dict[str, Any]]]
+    ) -> List[Dict[str, Any]]:
+        """
+        Post-process generated data to ensure referential integrity.
+        - Verifies FKs match existing parents
+        - Backfills missing links
+        - Propagates attributes (e.g. Patient Name -> Claim)
+        """
+        config = get_resource_config(resource)
+        if not config or not config.get("relationships"):
+            return data
+
+        relationships = config.get("relationships", [])
+        
+        for row in data:
+            for rel in relationships:
+                col_name = rel["column"]
+                ref = rel["references"]
+                
+                # Parse reference (e.g., "patient.ID")
+                parent_res_name, parent_col = ref.split(".")
+                
+                # specific validation logic only if we have context for this parent
+                parent_data = context.get(parent_res_name)
+                if not parent_data:
+                    continue
+                
+                # Get generated FK value
+                fk_val = row.get(col_name)
+                
+                # Find matching parent record
+                parent_record = None
+                
+                # 1. Try to find the record that matches the generated FK
+                if fk_val:
+                    for p in parent_data:
+                        # Check ID match (handling potential type mismatches)
+                        if str(p.get(parent_col)) == str(fk_val):
+                            parent_record = p
+                            break
+                            
+                # 2. If no match (or invalid FK), pick a random parent
+                if not parent_record:
+                    parent_record = random.choice(parent_data)
+                    # FIX: Overwrite the invalid FK with the valid one
+                    row[col_name] = parent_record.get(parent_col)
+                    logger.debug(f"Repaired FK for {resource}.{col_name}: {fk_val} -> {row[col_name]}")
+                
+                # 3. Propagate Attributes (if configured)
+                # Map parent attributes to child columns as defined in config
+                map_attrs = rel.get("map_attributes", {})
+                for parent_attr_path, child_col in map_attrs.items():
+                    # parent_attr_path is like "patient.MCID" or just "MCID"
+                    p_attr = parent_attr_path.split(".")[-1] # take the last part
+                    
+                    if p_attr in parent_record:
+                        row[child_col] = parent_record[p_attr]
+    
+        return data
     
     def generate_simple(
         self,
