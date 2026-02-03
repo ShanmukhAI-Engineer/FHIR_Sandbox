@@ -2,7 +2,7 @@
 Prompt Builder - Construct prompts for LLM generation
 """
 
-from typing import List, Dict, Optional
+from typing import Any,List, Dict, Optional
 import os
 import json
 from pathlib import Path
@@ -36,7 +36,8 @@ CRITICAL RULES:
         quick_inputs: Optional[Dict] = None,
         record_count: int = 10,
         required_columns: Optional[List[str]] = None,
-        relationship_context: Optional[Dict[str, List[str]]] = None
+        relationship_context: Optional[Dict[str, List[str]]] = None,
+        session_context: Optional[Dict[str,List[Dict[str,Any]]]] = None,
     ) -> tuple[str, str]:
         """
         Build the complete prompt for LLM.
