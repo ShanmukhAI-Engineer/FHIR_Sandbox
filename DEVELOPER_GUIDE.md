@@ -111,6 +111,23 @@ The system uses a **Topological Sort** to automatically determine the correct ex
 To support generating 40+ resources without exceeding token limits, the system uses **Context Filtering**.
 - When generating a specific resource (e.g., `Claim`), the LLM *only* sees data from its direct parents (e.g., `Patient`, `Coverage`).
 - It does *not* see unrelated data (e.g., `Practitioner`, `Location`), keeping the prompt clean and efficient.
+
+### Smart Record Count Suggestions
+To help users quickly generate realistic volumes of data, the sidebar offers "Smart Tips" for record counts.
+This is controlled by the `smart_ratio` parameter in the config.
+
+- **How it works**: If a `Parent` resource is selected, the system calculates a suggested count for the `Child`:
+    $$ Suggested = ParentCount * SmartRatio $$
+- **Configuration**:
+    ```python
+    # config/resources.py
+    "claim": {
+        "smart_ratio": 5.0,  # 5 Claims per Patient
+        # ...
+    }
+    ```
+- **Customizing**: Simply edit the float value in `config/resources.py`. Use `1.0` for 1-to-1 relationships.
+
 ---
 
 ## 4. Troubleshooting Missing Data
