@@ -176,7 +176,7 @@ def render_generation_tab():
             for res in selected_resources:
                 # Use a specific key for each resource to maintain state
                 granular_counts[res] = st.number_input(
-                    f"Count for {display_names.get(res, res)}:",
+                    f"Count for {resource_display_map.get(res, res)}:",
                     min_value=1,
                     max_value=100,
                     value=5,
