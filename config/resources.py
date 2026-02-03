@@ -35,6 +35,7 @@ RESOURCES = {
         "exclude_columns": STANDARD_EXCLUDES,
         "md5_fields": [],
         "relationships": [],
+        "smart_ratio": 1.0,
     },
     
     "coverage": {
@@ -49,6 +50,7 @@ RESOURCES = {
         "relationships": [
             {"column": "BENEFICIARY", "references": "patient.ID"},
         ],
+        "smart_ratio": 1.0,
     },
     
     "claim": {
@@ -64,6 +66,7 @@ RESOURCES = {
             {"column": "PATIENT", "references": "patient.ID"},
             {"column": "INSURANCE_COVERAGE", "references": "coverage.ID"},
         ],
+        "smart_ratio": 5.0,
     },
     
     "observation": {
@@ -79,6 +82,7 @@ RESOURCES = {
             {"column": "SUBJECT", "references": "patient.ID"},
             {"column": "SUBJECT_REF", "references": "patient.ID"},
         ],
+        "smart_ratio": 10.0,
     },
     
     "practitioner": {
@@ -91,6 +95,7 @@ RESOURCES = {
         "exclude_columns": STANDARD_EXCLUDES,
         "md5_fields": [],
         "relationships": [],
+        "smart_ratio": 1.0,
     },
     
     "location": {
@@ -105,6 +110,7 @@ RESOURCES = {
         "relationships": [
             {"column": "MANAGING_ORGANIZATION", "references": "organization.ID"},
         ],
+        "smart_ratio": 1.0,
     },
     
     "organization": {
@@ -117,6 +123,7 @@ RESOURCES = {
         "exclude_columns": STANDARD_EXCLUDES,
         "md5_fields": [],
         "relationships": [],
+        "smart_ratio": 1.0,
     },
     
     "encounter": {
@@ -132,6 +139,7 @@ RESOURCES = {
             {"column": "SUBJECT", "references": "patient.ID"},
             {"column": "SERVICE_PROVIDER", "references": "organization.ID"},
         ],
+        "smart_ratio": 3.0,
     },
     
     "condition": {
@@ -147,6 +155,7 @@ RESOURCES = {
             {"column": "SUBJECT", "references": "patient.ID"},
             {"column": "ENCOUNTER", "references": "encounter.ID"},
         ],
+        "smart_ratio": 2.0,
     },
     
     "medication_request": {
@@ -181,6 +190,7 @@ RESOURCES = {
                 }
             },
         ],
+        "smart_ratio": 2.0,
     },
 }
 

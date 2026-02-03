@@ -175,13 +175,36 @@ def render_generation_tab():
         if selected_resources:
             for res in selected_resources:
                 # Use a specific key for each resource to maintain state
+                # --- FEATURE: Smart Record Count Suggestions ---
+                default_count = 5
+                config = get_resource_config(res)
+                smart_ratio = config.get("smart_ratio", 1.0)
+                
+                # Check if we have a parent to base the count on
+                dep_graph = DependencyGraph(get_enabled_resources())
+                parents = dep_graph.get_parents(res)
+                suggested_count_msg = ""
+                
+                if parents:
+                    # Just pick the first parent found in the selection to be the driver
+                    # Ideally we might let user pick the driver, but simple is better here.
+                    for p in parents:
+                        if p in selected_resources and p in granular_counts:
+                            parent_count = granular_counts[p]
+                            calc_count = int(parent_count * smart_ratio)
+                            if calc_count != default_count:
+                                default_count = calc_count
+                                suggested_count_msg = f" (Suggested: {calc_count} based on {resource_display_map.get(p, p)})"
+                            break
+                            
                 granular_counts[res] = st.number_input(
-                    f"Count for {resource_display_map.get(res, res)}:",
+                    f"Count for {resource_display_map.get(res, res)}{suggested_count_msg}:",
                     min_value=1,
                     max_value=100,
-                    value=5,
+                    value=default_count,
                     key=f"count_{res}"
                 )
+                # -----------------------------------------------
         else:
             st.info("Select resources to set counts.")
     
