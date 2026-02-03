@@ -6,7 +6,7 @@ This document tracks the advanced features implemented in the `feature/expanded-
 **Problem**: Relying solely on Generative AI (LLM) for data linkage often leads to "hallucinations" (e.g., mismatched IDs, imaginary references).
 **Solution**: We implemented a deterministic post-processing layer that **enforces** integrity at the code level.
 
--   **Automatic Linkage**: The system automatically injects valid Parent IDs into Child records (e.g., `Claim.PATIENT_ID` is forced to match a real `Patient.ID`).
+-   **Automatic Linkage**: The system automatically injects valid parent IDs into child records (e.g., `Claim.PATIENT_ID` is forced to match a real `Patient.ID`).
 -   **Attribute Propagation**: Critical attributes (like `MemberID`, `NPI`) are copied from parent to child to ensure data quality.
 -   **Auto-Correction**: If the AI makes a mistake, the code silently corrects it before the data reaches the user.
 
@@ -32,6 +32,13 @@ This document tracks the advanced features implemented in the `feature/expanded-
 -   **Targeted Context**: When generating a `Claim`, the AI *only* sees the specific `Patient` and `Coverage` data it needs, not the entire database.
 -   **Scalable Architecture**: This design is ready to support **40+ Resource Types** without performance degradation.
 
+## 5. 📂 Context Loader (Persistent Sessions)
+**Problem**: Data generated in Session A (e.g., Patients) was lost when the browser was closed, preventing users from generating linked data (e.g., Claims) in Session B.
+**Solution**: We built a "Hydration Engine" that loads external CSVs into the active session.
+
+- **Cross-Session Consistency**: Generate Patients on Monday, save to CSV. Upload on Tuesday and generate matching Claims.
+- **Real-Data Support**: You can even seed the generator with *real* de-identified production data (CSV) to create synthetic children for them.
+
 ---
 
 ## ✅ Tracking Status
@@ -42,3 +49,4 @@ This document tracks the advanced features implemented in the `feature/expanded-
 | **Smart Ratios** | 🟢 **Live** | `config/resources.py` (`smart_ratio`) |
 | **Dependency Sorting** | 🟢 **Live** | Automatic (via `DependencyGraph`) |
 | **UI Suggestions** | 🟢 **Live** | Automatic (Sidebar logic) |
+| **Context Loader** | 🟢 **Live** | Sidebar ("Load Context") |
