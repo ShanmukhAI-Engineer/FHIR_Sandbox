@@ -128,6 +128,14 @@ This is controlled by the `smart_ratio` parameter in the config.
     ```
 - **Customizing**: Simply edit the float value in `config/resources.py`. Use `1.0` for 1-to-1 relationships.
 
+### Context Loading (CSV Re-hydration)
+To support multi-session workflows (e.g., Generate Patients -> Save -> Generate Claims next week), use the **"Load Context"** feature in the sidebar.
+
+1.  **Generate & Export**: Create data and save the CSV.
+2.  **New Session**: Open the app.
+3.  **Upload**: Expand "Data Context", upload the CSV, select the Resource Type (e.g., `Patient`), and click Load.
+4.  **Result**: The app now "knows" these patients exist and will use them as parents for any new data (e.g., `Coverage`, `Claim`).
+
 ---
 
 ## 4. Troubleshooting Missing Data

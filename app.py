@@ -6,6 +6,7 @@ Synthetic FHIR Data Generator with RAG
 import os
 import json
 import streamlit as st
+import pandas as pd
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -92,6 +93,45 @@ def render_sidebar():
         except Exception as e:
             st.error(f"Vector store error: {e}")
         
+        st.divider()
+        
+        # Context Loader
+        st.subheader("Data Context")
+        with st.expander("📂 Load Context (CSV)"):
+            st.info("Upload previously generated data to use as parent context for this session.")
+            uploaded_ctx = st.file_uploader("Upload CSV", type=["csv"], key="ctx_upload")
+            
+            ctx_resource = st.selectbox(
+                "Target Resource Type",
+                options=get_enabled_resources(),
+                key="ctx_resource",
+                index=0
+            )
+            
+            if uploaded_ctx and st.button("Load Data", key="ctx_load_btn"):
+                try:
+                    df = pd.read_csv(uploaded_ctx)
+                    # Convert to list of dicts (records)
+                    records = df.to_dict(orient="records")
+                    
+                    # Clean up NaN values (convert to None)
+                    clean_records = []
+                    for rec in records:
+                        clean_rec = {k: (v if pd.notna(v) else None) for k, v in rec.items()}
+                        clean_records.append(clean_rec)
+                    
+                    # Inject into session history
+                    if ctx_resource not in st.session_state.session_history:
+                        st.session_state.session_history[ctx_resource] = []
+                    
+                    st.session_state.session_history[ctx_resource].extend(clean_records)
+                    
+                    st.success(f"✅ Loaded {len(clean_records)} {ctx_resource} records!")
+                    st.rerun()
+                    
+                except Exception as e:
+                    st.error(f"Failed to load CSV: {e}")
+
         st.divider()
         
         # About
